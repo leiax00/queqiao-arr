@@ -71,3 +71,8 @@ Thumbs.db
 # 临时文件
 *.tmp
 *.temp
+
+# 自定义
+backend/data/
+**/temp/
+**/tmp/
