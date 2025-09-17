@@ -7,8 +7,5 @@ module.exports = {
   'frontend/**/*.{js,ts,vue}': [
     'eslint --fix',
     'vue-tsc --noEmit'
-  ],
-  '*.md': [
-    'prettier --write'
   ]
 };
