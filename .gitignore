@@ -75,6 +75,7 @@ Thumbs.db
 *.temp
 
 # 自定义
+**/runtime/
 backend/data/
 **/temp/
 **/tmp/
