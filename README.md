@@ -33,7 +33,6 @@ Queqiao-arr 是一个专为中文内容优化的自动化下载代理服务，�
 **后端技术栈:**
 - **FastAPI**: 现代、高性能的 Python Web 框架
 - **SQLAlchemy**: 强大的 ORM 数据库操作
-- **Alembic**: 数据库迁移管理
 - **SQLite**: 轻量级嵌入式数据库
 - **Pydantic**: 数据验证和设置管理
 
@@ -54,15 +53,15 @@ Queqiao-arr 是一个专为中文内容优化的自动化下载代理服务，�
 git clone https://github.com/your-username/queqiao-arr.git
 cd queqiao-arr
 
-# 复制环境变量配置
-cp .env.example .env
+# 复制环境变量配置（后端）
+cp backend/.env.example backend/.env
 
 # 启动服务
 docker-compose up -d
 
 # 访问应用
 # 前端界面: http://localhost:8000
-# API 文档: http://localhost:8000/docs
+# API 文档(开发模式): http://localhost:8000/api/docs
 ```
 
 ### 方式二：本地开发
@@ -106,7 +105,7 @@ npm install
 # 启动开发服务器
 npm run dev
 
-# 访问前端: http://localhost:3001
+# 访问前端: http://localhost:3000
 ```
 
 ## 🔧 开发环境搭建
@@ -121,8 +120,8 @@ cd queqiao-arr
 ### 2. 环境配置
 
 ```bash
-# 复制环境变量模板
-cp .env.example .env
+# 复制环境变量模板（后端）
+cp backend/.env.example backend/.env
 
 # 编辑环境变量 (根据需要修改)
 # DEBUG=true
@@ -130,14 +129,13 @@ cp .env.example .env
 # DATABASE_URL=sqlite+aiosqlite:///./data/queqiao.db
 ```
 
-### 3. 安装开发工具
+### 3. 安装开发工具（可选）
 
 ```bash
-# 安装 Git 钩子 (代码质量检查)
-npm install
-
-# 初始化 Git 钩子
-npm run prepare
+# 前端依赖安装
+cd frontend && npm install
+# 返回项目根目录
+cd ..
 ```
 
 ### 4. 启动开发服务
@@ -159,10 +157,10 @@ npm run dev
 
 ### 5. 访问应用
 
-- **前端界面**: http://localhost:3001
+- **前端界面**: http://localhost:3000
 - **后端 API**: http://localhost:8000
-- **API 文档**: http://localhost:8000/docs
-- **交互式 API**: http://localhost:8000/redoc
+- **API 文档(开发模式)**: http://localhost:8000/api/docs
+- **交互式 API(开发模式)**: http://localhost:8000/api/redoc
 
 ## 🐳 Docker 部署
 
@@ -282,11 +280,11 @@ docs: 更新 README 部署说明
 
 ### 代码质量
 
-项目配置了自动化代码质量检查：
+项目建议遵循代码质量规范（当前未强制启用钩子）：
 
-- **后端**: Black (格式化) + Ruff (检查) + MyPy (类型检查)
+- **后端（可选）**: Black (格式化) + Ruff (检查) + MyPy (类型检查)
 - **前端**: ESLint (检查) + Vue TSC (类型检查)
-- **Git 钩子**: 提交前自动运行代码检查
+- 如需提交前校验，可按需配置 commitlint/husky/lint-staged（可选）
 
 ### 本地测试
 

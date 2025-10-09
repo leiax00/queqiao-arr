@@ -25,15 +25,15 @@ async def lifespan(app: FastAPI):
     """
     # 启动时执行
     print(f"🚀 启动 {settings.APP_NAME} v{settings.VERSION}")
+
+    # 创建必要的目录
+    os.makedirs("runtime/logs", exist_ok=True)
+    os.makedirs("runtime/data", exist_ok=True)
+    print("📁 目录结构创建完成")
     
     # 创建数据库表
     await create_tables()
     print("📊 数据库表创建完成")
-    
-    # 创建必要的目录
-    os.makedirs("logs", exist_ok=True)
-    os.makedirs("data", exist_ok=True)
-    print("📁 目录结构创建完成")
     
     yield
     

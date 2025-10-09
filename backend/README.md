@@ -35,7 +35,7 @@ pip install -r requirements.txt
 复制环境变量模板：
 
 ```bash
-cp .env.example .env
+cp backend/.env.example backend/.env
 ```
 
 编辑`.env`文件，配置必要的环境变量。
@@ -115,9 +115,9 @@ backend/
 │   ├── utils/             # 工具函数
 │   │   ├── logger.py      # 日志配置
 │   │   └── encryption.py  # 加密工具
-│   └── tests/             # 测试代码
+│   └── tests/             # 测试代码（当前仓库未保留）
 ├── requirements.txt       # 依赖包
-├── pyproject.toml        # 项目配置
+├── pyproject.toml        # 项目配置（当前仓库未保留）
 └── README.md             # 说明文档
 ```
 
