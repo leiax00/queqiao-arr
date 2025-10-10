@@ -9,6 +9,37 @@ from typing import Optional
 
 from app.db.database import get_db
 from app.core.security import verify_token
+from app.utils import success_response, error_response
+
+from pydantic import BaseModel, EmailStr, Field
+
+
+class RegisterRequest(BaseModel):
+    username: str = Field(min_length=3, max_length=50)
+    password: str = Field(min_length=8, max_length=128)
+    email: Optional[EmailStr] = None
+
+
+class LoginRequest(BaseModel):
+    username: str = Field(min_length=3, max_length=50)
+    password: str = Field(min_length=8, max_length=128)
+
+
+class UserOut(BaseModel):
+    id: int
+    username: str
+    email: Optional[EmailStr] = None
+    is_active: bool
+    is_superuser: bool
+
+    class Config:
+        from_attributes = True
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    expires_in: int
 
 router = APIRouter()
 security = HTTPBearer(auto_error=False)
@@ -58,23 +89,34 @@ async def get_current_user(
 
 
 @router.post("/login")
-async def login():
+async def login(payload: LoginRequest):
     """
     用户登录端点
     
     TODO: 实现完整的登录逻辑
     """
-    return {"message": "登录端点待实现"}
+    # 骨架：返回统一响应结构（后续接入真实认证逻辑）
+    return success_response({
+        "access_token": "",
+        "token_type": "bearer",
+        "expires_in": 0,
+    })
 
 
 @router.post("/register")
-async def register():
+async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db)):
     """
     用户注册端点（仅首次运行时可用）
     
     TODO: 实现完整的注册逻辑
     """
-    return {"message": "注册端点待实现"}
+    # 骨架：返回统一响应结构（后续接入首用户创建逻辑）
+    return success_response({
+        "user": None,
+        "access_token": "",
+        "token_type": "bearer",
+        "expires_in": 0,
+    })
 
 
 @router.get("/me")
@@ -88,4 +130,4 @@ async def get_current_user_info(current_user=Depends(get_current_user)):
     Returns:
         dict: 用户信息
     """
-    return current_user
+    return success_response(current_user)
