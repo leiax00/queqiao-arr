@@ -208,8 +208,8 @@ curl -f http://localhost:8000/api/v1/health
 
 ### 在线文档
 
-- **Swagger UI**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
+- **Swagger UI**: http://localhost:8000/api/docs
+- **ReDoc**: http://localhost:8000/api/redoc
 
 ### 主要 API 端点
 
@@ -317,9 +317,9 @@ npm run lint
 
 ## 📞 联系方式
 
-- **项目主页**: https://github.com/your-username/queqiao-arr
-- **问题反馈**: https://github.com/your-username/queqiao-arr/issues
-- **功能建议**: https://github.com/your-username/queqiao-arr/discussions
+- **项目主页**: https://github.com/leiax00/queqiao-arr
+- **问题反馈**: https://github.com/leiax00/queqiao-arr/issues
+- **功能建议**: https://github.com/leiax00/queqiao-arr/discussions
 
 ---
 
@@ -327,6 +327,6 @@ npm run lint
 
 **如果这个项目对你有帮助，请给我们一个 ⭐ Star!**
 
-Made with ❤️ by [Your Name](https://github.com/your-username)
+Made with ❤️ by [Leiax00](https://github.com/leiax00)
 
 </div>
