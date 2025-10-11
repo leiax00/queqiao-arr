@@ -18,7 +18,7 @@
 - [ ] `[B-03]` 实现配置信息的加密存储与解密读取逻辑 (`复杂度: M, 估算: 3 PD`)
 
 ### ② 前端 (Frontend - UI)
-- [ ] `[FE-01]` 搭建Vue 3 + TS项目，集成Element Plus UI库和Vue Router (`复杂度: S, 估算: 1 PD`)
+- [x] `[FE-01]` 搭建Vue 3 + TS项目，集成Element Plus UI库和Vue Router (`复杂度: S, 估算: 1 PD`)
 - [ ] `[FE-02]` 开发注册页面（仅首次运行显示） (`复杂度: M, 估算: 3 PD`)
 - [ ] `[FE-03]` 开发登录页面，并完成与后端`[B-01]`的API联调 (`复杂度: M, 估算: 3 PD`)
 - [ ] `[FE-04]` 开发主设置页面UI，包含Sonarr, Prowlarr, 代理三个配置区块 (`复杂度: L, 估算: 5 PD`)
