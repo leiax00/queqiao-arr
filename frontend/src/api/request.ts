@@ -56,12 +56,6 @@ service.interceptors.response.use(
           const authStore = useAuthStore()
           authStore.logout()
           break
-        case 403:
-          ElMessage.error('没有权限访问该资源')
-          break
-        case 404:
-          ElMessage.error('请求的资源不存在')
-          break
         case 500:
           ElMessage.error('服务器内部错误')
           break

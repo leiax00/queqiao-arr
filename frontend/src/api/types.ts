@@ -33,6 +33,13 @@ export interface LoginResponse {
   expires_in: number
 }
 
+export interface RegisterResponse {
+  user: UserInfo
+  access_token: string
+  token_type: string
+  expires_in: number
+}
+
 export interface UserInfo {
   id: number
   username: string
