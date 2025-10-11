@@ -1,0 +1,186 @@
+// Tailwind CSS 基础样式
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+// CSS变量定义
+:root {
+  // 浅色主题
+  --color-primary: #0ea5e9;
+  --color-primary-light: #38bdf8;
+  --color-primary-dark: #0284c7;
+  
+  --color-bg-primary: #ffffff;
+  --color-bg-secondary: #f8fafc;
+  --color-text-primary: #1e293b;
+  --color-text-secondary: #64748b;
+  --color-border-primary: #e2e8f0;
+}
+
+.dark {
+  // 深色主题
+  --color-primary: #0ea5e9;
+  --color-primary-light: #38bdf8;
+  --color-primary-dark: #0284c7;
+  
+  --color-bg-primary: #0f172a;
+  --color-bg-secondary: #1e293b;
+  --color-text-primary: #f1f5f9;
+  --color-text-secondary: #94a3b8;
+  --color-border-primary: #334155;
+}
+
+// 全局基础样式
+@layer base {
+  * {
+    @apply box-border;
+  }
+  
+  html {
+    @apply h-full;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+  
+  body {
+    @apply h-full m-0 transition-colors duration-300;
+    background-color: var(--color-bg-primary);
+    color: var(--color-text-primary);
+  }
+  
+  #app {
+    @apply h-full;
+  }
+  
+  // 移除所有表单元素的 outline 和 Tailwind 默认样式
+  input,
+  textarea,
+  select,
+  button {
+    &:focus,
+    &:focus-visible {
+      outline: none !important;
+      outline-offset: 0 !important;
+      --tw-ring-shadow: 0 0 transparent !important;
+      --tw-ring-offset-shadow: 0 0 transparent !important;
+      box-shadow: none !important;
+      border-color: inherit !important;
+    }
+  }
+  
+  // 针对特定类型的输入框，覆盖 Tailwind 默认样式
+  [type='text']:focus,
+  input:where(:not([type])):focus,
+  [type='email']:focus,
+  [type='url']:focus,
+  [type='password']:focus,
+  [type='number']:focus,
+  [type='date']:focus,
+  [type='datetime-local']:focus,
+  [type='month']:focus,
+  [type='search']:focus,
+  [type='tel']:focus,
+  [type='time']:focus,
+  [type='week']:focus,
+  [multiple]:focus,
+  textarea:focus,
+  select:focus {
+    outline: none !important;
+    outline-offset: 0 !important;
+    --tw-ring-inset: initial !important;
+    --tw-ring-offset-width: 0px !important;
+    --tw-ring-offset-color: transparent !important;
+    --tw-ring-color: transparent !important;
+    --tw-ring-offset-shadow: 0 0 transparent !important;
+    --tw-ring-shadow: 0 0 transparent !important;
+    box-shadow: none !important;
+    border-color: inherit !important;
+  }
+}
+
+// 自定义组件样式
+@layer components {
+  .macaron-card {
+    @apply bg-white dark:bg-dark-card rounded-xl shadow-soft border border-light-border dark:border-dark-border;
+    @apply backdrop-blur-sm transition-all duration-300;
+    
+    &:hover {
+      @apply shadow-soft-lg transform translate-y-[-2px];
+    }
+  }
+  
+  .macaron-button {
+    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200;
+    @apply focus:outline-none focus:ring-2 focus:ring-primary-500/50;
+    
+    &.primary {
+      @apply bg-gradient-to-r from-primary-500 to-secondary-500;
+      @apply text-white hover:from-primary-600 hover:to-secondary-600;
+    }
+    
+    &.secondary {
+      @apply bg-light-card dark:bg-dark-card border border-light-border dark:border-dark-border;
+      @apply text-light-text dark:text-dark-text hover:bg-primary-50 dark:hover:bg-primary-900/20;
+    }
+  }
+
+  .drawer-bg {
+    @apply fixed top-0 left-0 w-full h-full bg-black bg-opacity-30 z-40;
+  }
+}
+
+// Element Plus 黑暗模式全局样式覆盖
+@layer utilities {
+  .dark {
+    // Element Plus 按钮组件
+    .el-button {
+      --el-button-text-color: #94a3b8;
+      --el-button-bg-color: transparent;
+      --el-button-border-color: #475569;
+      
+      --el-button-hover-text-color: #60a5fa;
+      --el-button-hover-bg-color: rgba(59, 130, 246, 0.1);
+      --el-button-hover-border-color: #3b82f6;
+      
+      --el-button-active-text-color: #3b82f6;
+      --el-button-active-bg-color: rgba(59, 130, 246, 0.15);
+      --el-button-active-border-color: #2563eb;
+    }
+    
+    // Element Plus 菜单组件
+    .el-menu {
+      --el-menu-bg-color: transparent;
+      --el-menu-text-color: #d1d5db;
+      --el-menu-hover-bg-color: rgba(59, 130, 246, 0.1);
+      --el-menu-hover-text-color: #60a5fa;
+      --el-menu-active-color: #3b82f6;
+    }
+    
+    // Element Plus 下拉菜单
+    .el-dropdown-menu {
+      --el-bg-color: #1e293b;
+      --el-border-color: #475569;
+      --el-text-color-primary: #d1d5db;
+    }
+    
+    // Element Plus 头像组件
+    .el-avatar {
+      --el-avatar-bg-color: #475569;
+      --el-avatar-text-color: #d1d5db;
+    }
+    
+    // Element Plus 卡片组件
+    .el-card {
+      --el-card-bg-color: #1e293b;
+      --el-card-border-color: #475569;
+      --el-text-color-primary: #d1d5db;
+      --el-text-color-regular: #94a3b8;
+    }
+    
+    // Element Plus 面包屑组件
+    .el-breadcrumb {
+      --el-text-color-primary: #d1d5db;
+      --el-text-color-regular: #94a3b8;
+      --el-text-color-placeholder: #6b7280;
+    }
+  }
+}

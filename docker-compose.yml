@@ -1,0 +1,36 @@
+name: "queqiao-arr"
+
+services:
+  queqiao-arr:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=false
+      - DATABASE_URL=sqlite+aiosqlite:///./data/queqiao.db
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # 开发环境配置
+  dev:
+    profiles: ["dev"]
+    build:
+      context: .
+      target: development
+    ports:
+      - "8000:8000"
+      - "3000:3000"
+    environment:
+      - DEBUG=true
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/backend/__pycache__
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

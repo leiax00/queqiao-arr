@@ -1,0 +1,36 @@
+# Web框架
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+
+# 数据库
+sqlalchemy==2.0.23
+alembic==1.12.1
+aiosqlite==0.19.0
+
+# 认证与安全
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.6
+
+# HTTP客户端
+httpx==0.25.2
+aiofiles==23.2.1
+
+# 配置管理
+python-dotenv==1.0.0
+pydantic-settings==2.0.3
+email-validator==2.3.0
+
+# 开发工具
+pytest==7.4.3
+pytest-asyncio==0.21.1
+black==23.11.0
+ruff==0.1.6
+mypy==1.7.1
+
+# 日志
+loguru==0.7.2
+
+# XML处理
+lxml==4.9.3
+xmltodict==0.13.0
