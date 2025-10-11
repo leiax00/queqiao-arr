@@ -54,3 +54,12 @@ async def authenticate_user(
     return user
 
 
+async def delete_user_by_username(db: AsyncSession, username: str) -> bool:
+    user = await get_user_by_username(db, username)
+    if not user:
+        return False
+    await db.delete(user)
+    await db.commit()
+    return True
+
+
