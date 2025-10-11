@@ -15,6 +15,7 @@ from app.db.crud_user import (
     get_user_count,
     create_user,
     authenticate_user,
+    delete_user_by_username,
 )
 from app.utils import success_response, error_response
 
@@ -271,3 +272,124 @@ async def get_current_user_info(current_user=Depends(get_current_user)):
         dict: 用户信息
     """
     return success_response(UserOut.model_validate(current_user).model_dump())
+
+
+@router.post(
+    "/refresh",
+    summary="刷新令牌",
+    description="使用现有有效令牌签发新的访问令牌（简单刷新机制）",
+    responses={
+        200: {
+            "description": "刷新成功",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "code": 200,
+                        "message": "OK",
+                        "data": {
+                            "access_token": "<jwt>",
+                            "token_type": "bearer",
+                            "expires_in": 1800
+                        }
+                    }
+                }
+            }
+        },
+        401: {
+            "description": "未认证",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "未提供认证凭据"}
+                }
+            }
+        }
+    },
+)
+async def refresh_token(current_user=Depends(get_current_user)):
+    token = create_access_token(subject=current_user.username)
+    return success_response({
+        "access_token": token,
+        "token_type": "bearer",
+        "expires_in": settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+    })
+
+
+@router.post(
+    "/logout",
+    summary="用户登出",
+    description="无状态 JWT 登出：前端清理本地令牌即可，此端点返回 200",
+    responses={
+        200: {
+            "description": "登出成功",
+            "content": {
+                "application/json": {
+                    "example": {"code": 200, "message": "Logged out", "data": None}
+                }
+            }
+        }
+    },
+)
+async def logout():
+    return success_response(None, message="Logged out")
+
+
+@router.delete(
+    "/users/{username}",
+    summary="删除用户（仅超级管理员）",
+    description="删除指定用户名的用户，要求当前用户为超级管理员",
+    responses={
+        200: {
+            "description": "删除成功",
+            "content": {
+                "application/json": {
+                    "example": {"code": 200, "message": "OK", "data": {"deleted": "user1"}}
+                }
+            }
+        },
+        400: {
+            "description": "非法操作（自删）",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "不能删除当前登录用户"}
+                }
+            }
+        },
+        401: {
+            "description": "未认证",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "未提供认证凭据"}
+                }
+            }
+        },
+        403: {
+            "description": "权限不足",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "仅超级管理员可删除用户"}
+                }
+            }
+        },
+        404: {
+            "description": "用户不存在",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "用户不存在"}
+                }
+            }
+        }
+    },
+)
+async def delete_user(
+    username: str,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if not current_user.is_superuser:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="仅超级管理员可删除用户")
+    if current_user.username == username:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="不能删除当前登录用户")
+    ok = await delete_user_by_username(db, username)
+    if not ok:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="用户不存在")
+    return success_response({"deleted": username})
