@@ -19,6 +19,7 @@ aiofiles==23.2.1
 # 配置管理
 python-dotenv==1.0.0
 pydantic-settings==2.0.3
+email-validator==2.3.0
 
 # 开发工具
 pytest==7.4.3
