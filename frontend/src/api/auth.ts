@@ -1,5 +1,5 @@
 import request from './request'
-import type { LoginData, LoginResponse, UserInfo, RegisterData } from './types'
+import type { LoginData, LoginResponse, UserInfo, RegisterData, RegisterResponse } from './types'
 
 export const authAPI = {
   // 用户登录
@@ -12,7 +12,7 @@ export const authAPI = {
   },
 
   // 用户注册
-  register: (data: RegisterData): Promise<void> => {
+  register: (data: Omit<RegisterData, 'confirmPassword'>): Promise<RegisterResponse> => {
     return request({
       url: '/auth/register',
       method: 'post',

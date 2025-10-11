@@ -4,26 +4,38 @@ import { useAuthStore } from '@/stores/auth'
 const router = createRouter({
   history: createWebHistory(),
   routes: [
+    // Auth 路由（使用 auth layout）
     {
       path: '/login',
-      name: 'Login',
-      component: () => import('@/views/auth/Login.vue'),
-      meta: {
-        layout: 'auth',
-        title: '登录',
-        requiresAuth: false,
-      },
+      component: () => import('@/layouts/auth/index.vue'),
+      children: [
+        {
+          path: '',
+          name: 'Login',
+          component: () => import('@/views/auth/Login.vue'),
+          meta: {
+            title: '登录',
+            requiresAuth: false,
+          },
+        },
+      ],
     },
     {
       path: '/register',
-      name: 'Register',
-      component: () => import('@/views/auth/Register.vue'),
-      meta: {
-        layout: 'auth',
-        title: '注册',
-        requiresAuth: false,
-      },
+      component: () => import('@/layouts/auth/index.vue'),
+      children: [
+        {
+          path: '',
+          name: 'Register',
+          component: () => import('@/views/auth/Register.vue'),
+          meta: {
+            title: '注册',
+            requiresAuth: false,
+          },
+        },
+      ],
     },
+    // 默认布局路由
     {
       path: '/',
       redirect: '/dashboard',
@@ -109,15 +121,15 @@ const router = createRouter({
 })
 
 // 路由守卫
-router.beforeEach(async (to, from, next) => {
+router.beforeEach(async (to, _from, next) => {
   const authStore = useAuthStore()
   
   // 检查是否需要认证
-  // if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-  //   // 未登录，跳转到登录页
-  //   next('/login')
-  //   return
-  // }
+  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
+    // 未登录，跳转到登录页
+    next('/login')
+    return
+  }
   
   // 已登录用户访问登录页，跳转到首页
   if (authStore.isAuthenticated && (to.path === '/login' || to.path === '/register')) {

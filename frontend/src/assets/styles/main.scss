@@ -50,6 +50,51 @@
   #app {
     @apply h-full;
   }
+  
+  // 移除所有表单元素的 outline 和 Tailwind 默认样式
+  input,
+  textarea,
+  select,
+  button {
+    &:focus,
+    &:focus-visible {
+      outline: none !important;
+      outline-offset: 0 !important;
+      --tw-ring-shadow: 0 0 transparent !important;
+      --tw-ring-offset-shadow: 0 0 transparent !important;
+      box-shadow: none !important;
+      border-color: inherit !important;
+    }
+  }
+  
+  // 针对特定类型的输入框，覆盖 Tailwind 默认样式
+  [type='text']:focus,
+  input:where(:not([type])):focus,
+  [type='email']:focus,
+  [type='url']:focus,
+  [type='password']:focus,
+  [type='number']:focus,
+  [type='date']:focus,
+  [type='datetime-local']:focus,
+  [type='month']:focus,
+  [type='search']:focus,
+  [type='tel']:focus,
+  [type='time']:focus,
+  [type='week']:focus,
+  [multiple]:focus,
+  textarea:focus,
+  select:focus {
+    outline: none !important;
+    outline-offset: 0 !important;
+    --tw-ring-inset: initial !important;
+    --tw-ring-offset-width: 0px !important;
+    --tw-ring-offset-color: transparent !important;
+    --tw-ring-color: transparent !important;
+    --tw-ring-offset-shadow: 0 0 transparent !important;
+    --tw-ring-shadow: 0 0 transparent !important;
+    box-shadow: none !important;
+    border-color: inherit !important;
+  }
 }
 
 // 自定义组件样式
