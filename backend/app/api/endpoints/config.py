@@ -89,10 +89,6 @@ class KVConfigUpdate(BaseModel):
     is_active: Optional[bool] = None
 
 
-class ConfigCreateRequest(BaseModel):
-    __root__: ServiceConfigCreate | KVConfigCreate
-
-
 class TestConnectionByBody(BaseModel):
     mode: Literal["by_body"] = "by_body"
     service_name: Literal["sonarr", "prowlarr"]
