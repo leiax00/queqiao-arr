@@ -6,7 +6,11 @@ import base64
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-from typing import str as String, bytes as Bytes
+from typing import Optional
+
+# 使用内置类型作为别名，避免从 typing 导入内置类型
+String = str
+Bytes = bytes
 
 from app.core.config import settings
 
