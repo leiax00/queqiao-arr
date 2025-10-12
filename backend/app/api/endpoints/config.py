@@ -19,95 +19,138 @@ router = APIRouter()
 
 
 class ServiceConfigOut(BaseModel):
-    id: int
-    service_name: str
-    service_type: str
-    name: str
-    url: str
-    api_key_masked: Optional[str] = None
-    username: Optional[str] = None
-    is_active: bool
-    created_at: Optional[str] = None
-    updated_at: Optional[str] = None
+    id: int = Field(description="配置ID")
+    service_name: str = Field(description="服务名：sonarr|prowlarr|proxy")
+    service_type: str = Field(description="服务类型：api|proxy")
+    name: str = Field(description="配置名称")
+    url: str = Field(description="服务基础URL")
+    api_key_masked: Optional[str] = Field(default=None, description="API Key 掩码，仅展示末4位")
+    username: Optional[str] = Field(default=None, description="用户名（可选）")
+    is_active: bool = Field(description="是否启用")
+    created_at: Optional[str] = Field(default=None, description="创建时间 ISO8601")
+    updated_at: Optional[str] = Field(default=None, description="更新时间 ISO8601")
 
     class Config:
         from_attributes = True
 
 
 class KVConfigOut(BaseModel):
-    id: int
-    key: str
-    value: Optional[str] = None
-    is_encrypted: bool
-    is_active: bool
-    created_at: Optional[str] = None
-    updated_at: Optional[str] = None
+    id: int = Field(description="配置ID")
+    key: str = Field(description="键")
+    value: Optional[str] = Field(default=None, description="值（若加密则不返回明文）")
+    is_encrypted: bool = Field(description="是否加密存储")
+    is_active: bool = Field(description="是否启用")
+    created_at: Optional[str] = Field(default=None, description="创建时间 ISO8601")
+    updated_at: Optional[str] = Field(default=None, description="更新时间 ISO8601")
 
     class Config:
         from_attributes = True
 
 
 class ServiceConfigCreate(BaseModel):
-    type: Literal["service"] = Field(description="配置类型固定为 service")
-    service_name: Literal["sonarr", "prowlarr", "proxy"]
-    service_type: Literal["api", "proxy"]
-    name: str = Field(min_length=1, max_length=100)
-    url: str = Field(min_length=1, max_length=255)
-    api_key: Optional[str] = None
-    username: Optional[str] = None
-    password: Optional[str] = None
-    extra_config: Optional[Dict[str, Any]] = None
-    is_active: bool = True
+    type: Literal["service"] = Field(description="配置类型固定为 service", examples=["service"])
+    service_name: Literal["sonarr", "prowlarr", "proxy"] = Field(description="服务名", examples=["sonarr"])
+    service_type: Literal["api", "proxy"] = Field(description="服务类型", examples=["api"])
+    name: str = Field(min_length=1, max_length=100, description="配置名称", examples=["主Sonarr"])
+    url: str = Field(min_length=1, max_length=255, description="服务URL", examples=["http://127.0.0.1:8989"])
+    api_key: Optional[str] = Field(default=None, description="API Key（可选）")
+    username: Optional[str] = Field(default=None, description="用户名（可选）")
+    password: Optional[str] = Field(default=None, description="密码（可选）")
+    extra_config: Optional[Dict[str, Any]] = Field(default=None, description="额外配置（JSON）")
+    is_active: bool = Field(default=True, description="是否启用")
 
 
 class KVConfigCreate(BaseModel):
-    type: Literal["kv"] = Field(description="配置类型固定为 kv")
-    key: str = Field(min_length=1, max_length=100)
-    value: Optional[str] = None
-    description: Optional[str] = None
-    is_encrypted: bool = False
-    is_active: bool = True
+    type: Literal["kv"] = Field(description="配置类型固定为 kv", examples=["kv"])
+    key: str = Field(min_length=1, max_length=100, description="键", examples=["http_proxy"])
+    value: Optional[str] = Field(default=None, description="值")
+    description: Optional[str] = Field(default=None, description="描述")
+    is_encrypted: bool = Field(default=False, description="是否加密存储")
+    is_active: bool = Field(default=True, description="是否启用")
 
 
 class ServiceConfigUpdate(BaseModel):
-    service_name: Optional[Literal["sonarr", "prowlarr", "proxy"]] = None
-    service_type: Optional[Literal["api", "proxy"]] = None
-    name: Optional[str] = Field(default=None, min_length=1, max_length=100)
-    url: Optional[str] = Field(default=None, min_length=1, max_length=255)
-    api_key: Optional[str] = None
-    username: Optional[str] = None
-    password: Optional[str] = None
-    extra_config: Optional[Dict[str, Any]] = None
-    is_active: Optional[bool] = None
+    service_name: Optional[Literal["sonarr", "prowlarr", "proxy"]] = Field(default=None, description="服务名")
+    service_type: Optional[Literal["api", "proxy"]] = Field(default=None, description="服务类型")
+    name: Optional[str] = Field(default=None, min_length=1, max_length=100, description="配置名称")
+    url: Optional[str] = Field(default=None, min_length=1, max_length=255, description="服务URL")
+    api_key: Optional[str] = Field(default=None, description="API Key")
+    username: Optional[str] = Field(default=None, description="用户名")
+    password: Optional[str] = Field(default=None, description="密码")
+    extra_config: Optional[Dict[str, Any]] = Field(default=None, description="额外配置（JSON）")
+    is_active: Optional[bool] = Field(default=None, description="是否启用")
 
 
 class KVConfigUpdate(BaseModel):
-    key: Optional[str] = Field(default=None, min_length=1, max_length=100)
-    value: Optional[str] = None
-    description: Optional[str] = None
-    is_encrypted: Optional[bool] = None
-    is_active: Optional[bool] = None
+    key: Optional[str] = Field(default=None, min_length=1, max_length=100, description="键")
+    value: Optional[str] = Field(default=None, description="值")
+    description: Optional[str] = Field(default=None, description="描述")
+    is_encrypted: Optional[bool] = Field(default=None, description="是否加密存储")
+    is_active: Optional[bool] = Field(default=None, description="是否启用")
 
 
 class TestConnectionByBody(BaseModel):
-    mode: Literal["by_body"] = "by_body"
-    service_name: Literal["sonarr", "prowlarr"]
-    url: str
-    api_key: Optional[str] = None
-    username: Optional[str] = None
-    password: Optional[str] = None
-    proxy: Optional[Dict[str, str]] = None
+    mode: Literal["by_body"] = Field(default="by_body", description="按请求体测试")
+    service_name: Literal["sonarr", "prowlarr"] = Field(description="服务名", examples=["sonarr"])
+    url: str = Field(description="服务URL", examples=["http://127.0.0.1:8989"])
+    api_key: Optional[str] = Field(default=None, description="API Key（可选）")
+    username: Optional[str] = Field(default=None, description="用户名（可选）")
+    password: Optional[str] = Field(default=None, description="密码（可选）")
+    proxy: Optional[Dict[str, str]] = Field(default=None, description="代理配置，如 {http, https}")
 
 
 class TestConnectionById(BaseModel):
-    mode: Literal["by_id"] = "by_id"
-    id: int
+    mode: Literal["by_id"] = Field(default="by_id", description="按ID测试")
+    id: int = Field(description="配置ID")
 
 
 TestConnectionRequest = TestConnectionByBody | TestConnectionById
 
 
-@router.get("/", summary="获取配置概览")
+@router.get(
+    "/",
+    summary="获取配置概览",
+    description="返回服务配置与KV配置的概要列表（敏感字段使用掩码，不回显明文）",
+    responses={
+        200: {
+            "description": "成功",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "code": 200,
+                        "message": "OK",
+                        "data": {
+                            "services": [
+                                {
+                                    "id": 1,
+                                    "service_name": "sonarr",
+                                    "service_type": "api",
+                                    "name": "默认Sonarr",
+                                    "url": "http://127.0.0.1:8989",
+                                    "api_key_masked": "****9f2c",
+                                    "is_active": True,
+                                    "created_at": "2025-10-12T10:00:00Z",
+                                    "updated_at": "2025-10-12T11:00:00Z"
+                                }
+                            ],
+                            "kv": [
+                                {
+                                    "id": 11,
+                                    "key": "default_language",
+                                    "value": "zh-CN",
+                                    "is_encrypted": False,
+                                    "is_active": True,
+                                    "created_at": "2025-10-12T10:00:00Z",
+                                    "updated_at": "2025-10-12T11:00:00Z"
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+    },
+)
 async def get_configurations(
     service_name: Optional[str] = Query(default=None),
     is_active: Optional[bool] = Query(default=None),
@@ -154,7 +197,25 @@ async def get_configurations(
     return success_response({"services": [x.model_dump() for x in services_out], "kv": [x.model_dump() for x in kv_out]})
 
 
-@router.post("/", summary="创建配置")
+@router.post(
+    "/",
+    summary="创建配置",
+    description="创建服务配置或KV配置。服务配置的API Key/密码会加密入库，响应仅返回ID。",
+    responses={
+        200: {
+            "description": "创建成功",
+            "content": {
+                "application/json": {
+                    "example": {"code": 200, "message": "OK", "data": {"id": 1}}
+                }
+            }
+        },
+        409: {
+            "description": "重复（服务名+名称 或 KV键 冲突）",
+            "content": {"application/json": {"example": {"detail": "同名配置已存在"}}}
+        }
+    },
+)
 async def create_configuration(
     payload: ServiceConfigCreate | KVConfigCreate,
     db: AsyncSession = Depends(get_db),
@@ -200,7 +261,19 @@ async def create_configuration(
         return success_response({"id": item.id})
 
 
-@router.put("/{config_id}", summary="更新配置")
+@router.put(
+    "/{config_id}",
+    summary="更新配置",
+    description="按ID更新服务或KV配置。若更新敏感字段则重新加密入库，响应仅返回ID。",
+    responses={
+        200: {
+            "description": "更新成功",
+            "content": {"application/json": {"example": {"code": 200, "message": "OK", "data": {"id": 1}}}},
+        },
+        404: {"description": "配置不存在", "content": {"application/json": {"example": {"detail": "配置不存在"}}}},
+        409: {"description": "重复冲突", "content": {"application/json": {"example": {"detail": "Key 已存在"}}}},
+    },
+)
 async def update_configuration(
     config_id: int,
     payload: ServiceConfigUpdate | KVConfigUpdate,
@@ -256,7 +329,15 @@ async def update_configuration(
     return success_response({"id": kv.id})
 
 
-@router.delete("/{config_id}", summary="删除配置")
+@router.delete(
+    "/{config_id}",
+    summary="删除配置",
+    description="按ID删除服务或KV配置。",
+    responses={
+        200: {"description": "删除成功", "content": {"application/json": {"example": {"code": 200, "message": "OK", "data": {"deleted": True}}}}},
+        404: {"description": "配置不存在", "content": {"application/json": {"example": {"detail": "配置不存在"}}}},
+    },
+)
 async def delete_configuration(
     config_id: int,
     db: AsyncSession = Depends(get_db),
@@ -273,7 +354,23 @@ async def delete_configuration(
     return success_response({"deleted": True})
 
 
-@router.post("/test-connection", summary="测试服务连通性")
+@router.post(
+    "/test-connection",
+    summary="测试服务连通性",
+    description="测试 Sonarr/Prowlarr 的连通性，支持按请求体或按配置ID测试。",
+    responses={
+        200: {
+            "description": "测试结果",
+            "content": {
+                "application/json": {
+                    "example": {"code": 200, "message": "OK", "data": {"ok": True, "details": "HTTP 200"}}
+                }
+            }
+        },
+        400: {"description": "参数错误", "content": {"application/json": {"example": {"detail": "仅支持 sonarr/prowlarr 连通性测试"}}}},
+        404: {"description": "配置不存在", "content": {"application/json": {"example": {"detail": "配置不存在"}}}},
+    },
+)
 async def test_service_connection(
     payload: TestConnectionRequest,
     db: AsyncSession = Depends(get_db),
@@ -288,9 +385,12 @@ async def test_service_connection(
             headers["X-Api-Key"] = api_key
         test_url = url.rstrip("/") + "/api/v3/system/status"
         timeout = httpx.Timeout(5.0)
-        async with httpx.AsyncClient(timeout=timeout, proxies=proxy) as client:
-            resp = await client.get(test_url, headers=headers)
-            return resp.status_code == 200, f"HTTP {resp.status_code}"
+        try:
+            async with httpx.AsyncClient(timeout=timeout, proxies=proxy) as client:
+                resp = await client.get(test_url, headers=headers)
+                return resp.status_code == 200, f"HTTP {resp.status_code}"
+        except Exception as e:
+            return False, str(e)
 
     # 准备参数
     service_name: Optional[str] = None
