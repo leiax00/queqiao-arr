@@ -30,70 +30,35 @@
   --color-border-primary: #334155;
 }
 
-// 全局基础样式
+// 基础重置样式（替代 Preflight）
 @layer base {
-  * {
-    @apply box-border;
+  // 基础盒模型重置
+  *,
+  ::before,
+  ::after {
+    box-sizing: border-box;
+    border-width: 0;
+    border-style: solid;
+    border-color: currentColor;
   }
   
   html {
     @apply h-full;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    line-height: 1.5;
+    -webkit-text-size-adjust: 100%;
+    tab-size: 4;
   }
   
   body {
     @apply h-full m-0 transition-colors duration-300;
     background-color: var(--color-bg-primary);
     color: var(--color-text-primary);
+    line-height: inherit;
   }
   
   #app {
     @apply h-full;
-  }
-  
-  // 移除所有表单元素的 outline 和 Tailwind 默认样式
-  input,
-  textarea,
-  select,
-  button {
-    &:focus,
-    &:focus-visible {
-      outline: none !important;
-      outline-offset: 0 !important;
-      --tw-ring-shadow: 0 0 transparent !important;
-      --tw-ring-offset-shadow: 0 0 transparent !important;
-      box-shadow: none !important;
-      border-color: inherit !important;
-    }
-  }
-  
-  // 针对特定类型的输入框，覆盖 Tailwind 默认样式
-  [type='text']:focus,
-  input:where(:not([type])):focus,
-  [type='email']:focus,
-  [type='url']:focus,
-  [type='password']:focus,
-  [type='number']:focus,
-  [type='date']:focus,
-  [type='datetime-local']:focus,
-  [type='month']:focus,
-  [type='search']:focus,
-  [type='tel']:focus,
-  [type='time']:focus,
-  [type='week']:focus,
-  [multiple]:focus,
-  textarea:focus,
-  select:focus {
-    outline: none !important;
-    outline-offset: 0 !important;
-    --tw-ring-inset: initial !important;
-    --tw-ring-offset-width: 0px !important;
-    --tw-ring-offset-color: transparent !important;
-    --tw-ring-color: transparent !important;
-    --tw-ring-offset-shadow: 0 0 transparent !important;
-    --tw-ring-shadow: 0 0 transparent !important;
-    box-shadow: none !important;
-    border-color: inherit !important;
   }
 }
 
@@ -128,31 +93,255 @@
   }
 }
 
-// Element Plus 黑暗模式全局样式覆盖
+// Element Plus 全局样式覆盖
 @layer utilities {
+  // 浅色模式按钮 - 基于项目天蓝主题
+  html:not(.dark) .el-button {
+    // 默认按钮 - 灰白简洁
+    --el-button-text-color: #64748b;
+    --el-button-bg-color: #ffffff;
+    --el-button-border-color: #cbd5e1;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    &:hover:not(:disabled) {
+      --el-button-text-color: #0ea5e9;
+      --el-button-bg-color: #f0f9ff;
+      --el-button-border-color: #7dd3fc;
+    }
+    
+    &:active:not(:disabled) {
+      --el-button-text-color: #0891b2;
+      --el-button-bg-color: #e0f2fe;
+      --el-button-border-color: #38bdf8;
+    }
+    
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    
+    // Primary 按钮 - 天蓝主题色
+    &.el-button--primary {
+      --el-button-text-color: #ffffff;
+      --el-button-bg-color: #0ea5e9;
+      --el-button-border-color: #0ea5e9;
+      font-weight: 500;
+      
+      &:hover:not(:disabled) {
+        --el-button-bg-color: #38bdf8;
+        --el-button-border-color: #38bdf8;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(14, 165, 233, 0.25);
+      }
+      
+      &:active:not(:disabled) {
+        --el-button-bg-color: #0284c7;
+        --el-button-border-color: #0284c7;
+        transform: translateY(0);
+        box-shadow: 0 2px 6px rgba(14, 165, 233, 0.2);
+      }
+      
+      &:disabled {
+        --el-button-bg-color: #cbd5e1;
+        --el-button-border-color: #cbd5e1;
+        --el-button-text-color: #94a3b8;
+        box-shadow: none;
+      }
+    }
+    
+    // Info 按钮 - 紫色次要色
+    &.el-button--info {
+      --el-button-text-color: #ffffff;
+      --el-button-bg-color: #a855f7;
+      --el-button-border-color: #a855f7;
+      font-weight: 500;
+      
+      &:hover:not(:disabled) {
+        --el-button-bg-color: #c084fc;
+        --el-button-border-color: #c084fc;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(168, 85, 247, 0.25);
+      }
+      
+      &:active:not(:disabled) {
+        --el-button-bg-color: #9333ea;
+        --el-button-border-color: #9333ea;
+        transform: translateY(0);
+        box-shadow: 0 2px 6px rgba(168, 85, 247, 0.2);
+      }
+      
+      &:disabled {
+        --el-button-bg-color: #cbd5e1;
+        --el-button-border-color: #cbd5e1;
+        --el-button-text-color: #94a3b8;
+        box-shadow: none;
+      }
+    }
+  }
+  
+  // Switch 浅色模式
+  .el-switch {
+    --el-switch-on-color: #0ea5e9;
+    --el-switch-off-color: #cbd5e1;
+  }
+  
+  // 输入框浅色模式
+  .el-input {
+    --el-input-focus-border-color: #0ea5e9;
+    
+    .el-input__wrapper {
+      background-color: #ffffff;
+    }
+  }
+  
+  .el-input-number {
+    --el-input-focus-border-color: #0ea5e9;
+    
+    .el-input__wrapper {
+      background-color: #ffffff;
+    }
+    
+    // 增减按钮
+    .el-input-number__decrease,
+    .el-input-number__increase {
+      background-color: #ffffff;
+      color: #6b7280;
+      border-left-color: #d1d5db;
+      
+      &:hover {
+        color: #0ea5e9;
+        background-color: #f0f9ff;
+      }
+      
+      &:active {
+        color: #0284c7;
+      }
+      
+      &.is-disabled {
+        color: #d1d5db;
+        background-color: #f9fafb;
+        cursor: not-allowed;
+      }
+    }
+  }
+  
+  .el-select {
+    --el-select-input-focus-border-color: #0ea5e9;
+    
+    .el-select__wrapper {
+      background-color: #ffffff !important;
+      border-color: #d1d5db;
+      
+      &:hover {
+        border-color: #9ca3af;
+      }
+      
+      &.is-focused {
+        border-color: #0ea5e9;
+      }
+    }
+  }
+  
   .dark {
-    // Element Plus 按钮组件
+    // Element Plus 按钮组件 - 深色模式（科技赛博风）
     .el-button {
-      --el-button-text-color: #94a3b8;
-      --el-button-bg-color: transparent;
-      --el-button-border-color: #475569;
+      --el-button-text-color: #e2e8f0;
+      --el-button-bg-color: rgba(30, 41, 59, 0.5);
+      --el-button-border-color: #64748b;
       
-      --el-button-hover-text-color: #60a5fa;
-      --el-button-hover-bg-color: rgba(59, 130, 246, 0.1);
-      --el-button-hover-border-color: #3b82f6;
+      --el-button-hover-text-color: #67e8f9;
+      --el-button-hover-bg-color: rgba(103, 232, 249, 0.1);
+      --el-button-hover-border-color: #06b6d4;
       
-      --el-button-active-text-color: #3b82f6;
-      --el-button-active-bg-color: rgba(59, 130, 246, 0.15);
-      --el-button-active-border-color: #2563eb;
+      --el-button-active-text-color: #22d3ee;
+      --el-button-active-bg-color: rgba(34, 211, 238, 0.15);
+      --el-button-active-border-color: #0891b2;
+      
+      // Disabled 状态 - 提高可读性
+      --el-button-disabled-text-color: #94a3b8;
+      --el-button-disabled-bg-color: rgba(30, 41, 59, 0.3);
+      --el-button-disabled-border-color: #475569;
+      
+      // Primary 按钮 - 霓虹青色科技感
+      &.el-button--primary {
+        --el-button-text-color: #f0fdfa;
+        --el-button-bg-color: #06b6d4;
+        --el-button-border-color: #06b6d4;
+        --el-button-hover-bg-color: #22d3ee;
+        --el-button-hover-border-color: #22d3ee;
+        --el-button-active-bg-color: #0891b2;
+        --el-button-active-border-color: #0891b2;
+        color: #f0fdfa;
+        
+        // Disabled - 明显不可用，无发光效果
+        --el-button-disabled-text-color: #64748b;
+        --el-button-disabled-bg-color: #1e293b;
+        --el-button-disabled-border-color: #334155;
+        
+        &:not(:disabled) {
+          box-shadow: 0 0 15px rgba(6, 182, 212, 0.25);
+        }
+        
+        &:hover:not(:disabled) {
+          box-shadow: 0 0 20px rgba(34, 211, 238, 0.35);
+          color: #ffffff;
+        }
+        
+        &:active:not(:disabled) {
+          box-shadow: 0 0 10px rgba(6, 182, 212, 0.2);
+        }
+        
+        &:disabled {
+          box-shadow: none !important;
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+      }
+      
+      // Info 按钮 - 霓虹紫科技感
+      &.el-button--info {
+        --el-button-text-color: #faf5ff;
+        --el-button-bg-color: #a855f7;
+        --el-button-border-color: #a855f7;
+        --el-button-hover-bg-color: #c084fc;
+        --el-button-hover-border-color: #c084fc;
+        --el-button-active-bg-color: #9333ea;
+        --el-button-active-border-color: #9333ea;
+        color: #faf5ff;
+        
+        // Disabled - 明显不可用，无发光效果
+        --el-button-disabled-text-color: #64748b;
+        --el-button-disabled-bg-color: #1e293b;
+        --el-button-disabled-border-color: #334155;
+        
+        &:not(:disabled) {
+          box-shadow: 0 0 15px rgba(168, 85, 247, 0.25);
+        }
+        
+        &:hover:not(:disabled) {
+          box-shadow: 0 0 20px rgba(192, 132, 252, 0.35);
+          color: #ffffff;
+        }
+        
+        &:active:not(:disabled) {
+          box-shadow: 0 0 10px rgba(168, 85, 247, 0.2);
+        }
+        
+        &:disabled {
+          box-shadow: none !important;
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+      }
     }
     
     // Element Plus 菜单组件
     .el-menu {
       --el-menu-bg-color: transparent;
       --el-menu-text-color: #d1d5db;
-      --el-menu-hover-bg-color: rgba(59, 130, 246, 0.1);
-      --el-menu-hover-text-color: #60a5fa;
-      --el-menu-active-color: #3b82f6;
+      --el-menu-hover-bg-color: rgba(14, 165, 233, 0.1);
+      --el-menu-hover-text-color: #38bdf8;
+      --el-menu-active-color: #0ea5e9;
     }
     
     // Element Plus 下拉菜单
@@ -181,6 +370,268 @@
       --el-text-color-primary: #d1d5db;
       --el-text-color-regular: #94a3b8;
       --el-text-color-placeholder: #6b7280;
+    }
+    
+    // Element Plus 输入框组件
+    .el-input {
+      --el-input-bg-color: #1e293b;
+      --el-input-border-color: #475569;
+      --el-input-hover-border-color: #64748b;
+      --el-input-focus-border-color: #0ea5e9;
+      --el-input-text-color: #f1f5f9;
+      --el-input-placeholder-color: #64748b;
+      --el-disabled-bg-color: #0f172a;
+      --el-disabled-text-color: #475569;
+      --el-disabled-border-color: #334155;
+      
+      .el-input__wrapper {
+        background-color: #1e293b;
+      }
+    }
+    
+    // Element Plus 输入数字组件
+    .el-input-number {
+      --el-input-bg-color: #1e293b;
+      --el-input-border-color: #475569;
+      --el-input-hover-border-color: #64748b;
+      --el-input-focus-border-color: #0ea5e9;
+      --el-input-text-color: #f1f5f9;
+      --el-disabled-bg-color: #0f172a;
+      --el-disabled-text-color: #475569;
+      --el-disabled-border-color: #334155;
+      
+      .el-input__wrapper {
+        background-color: #1e293b;
+      }
+      
+      // 增减按钮
+      .el-input-number__decrease,
+      .el-input-number__increase {
+        background-color: #1e293b;
+        color: #94a3b8;
+        border-left-color: #475569;
+        
+        &:hover {
+          color: #0ea5e9;
+          background-color: rgba(14, 165, 233, 0.1);
+        }
+        
+        &:active {
+          color: #38bdf8;
+        }
+        
+        &.is-disabled {
+          color: #475569;
+          background-color: #0f172a;
+          cursor: not-allowed;
+        }
+      }
+      .el-input-number__increase {
+        --el-border: var(--el-border-width) var(--el-border-style) #475569;
+      }
+    }
+    
+    // Element Plus 选择器组件
+    .el-select {
+      --el-select-input-focus-border-color: #0ea5e9;
+      
+      .el-select__wrapper {
+        background-color: #1e293b !important;
+        border-color: #475569;
+        box-shadow: 0 0 0 1px #475569 inset;
+        
+        &:hover {
+          border-color: #64748b;
+          box-shadow: 0 0 0 1px #64748b inset;
+        }
+        
+        &.is-focused {
+          border-color: #0ea5e9;
+          box-shadow: 0 0 0 1px #0ea5e9 inset;
+        }
+      }
+      
+      .el-input {
+        --el-input-bg-color: #1e293b;
+        --el-input-border-color: #475569;
+        --el-input-hover-border-color: #64748b;
+        --el-input-text-color: #f1f5f9;
+        --el-input-placeholder-color: #64748b;
+        
+        .el-input__wrapper {
+          background-color: #1e293b;
+        }
+      }
+    }
+  }
+}
+
+// Element Plus 选择器下拉面板（全局样式，因为会 Teleport 到 body）
+html.dark .el-select-dropdown {
+  --el-bg-color: #1e293b;
+  --el-border-color: #475569;
+  background-color: #1e293b !important;
+  border: 1px solid #475569 !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  
+  .el-select-dropdown__item {
+    color: #d1d5db;
+    background-color: transparent;
+    
+    &.hover,
+    &.is-hovering,
+    &:hover {
+      background-color: rgba(14, 165, 233, 0.15) !important;
+      color: #38bdf8;
+    }
+    
+    &.selected {
+      color: #0ea5e9;
+      font-weight: 600;
+      background-color: rgba(14, 165, 233, 0.1);
+      
+      &.is-hovering,
+      &:hover {
+        background-color: rgba(14, 165, 233, 0.2) !important;
+      }
+    }
+  }
+}
+
+// 浅色模式下拉面板
+html:not(.dark) .el-select-dropdown {
+  --el-bg-color: #ffffff;
+  --el-border-color: #e5e7eb;
+  background-color: #ffffff !important;
+  border: 1px solid #e5e7eb !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  
+  .el-select-dropdown__item {
+    color: #374151;
+    background-color: transparent;
+    
+    &.hover,
+    &.is-hovering,
+    &:hover {
+      background-color: #f0f9ff !important;
+      color: #0ea5e9;
+    }
+    
+    &.selected {
+      color: #0ea5e9;
+      font-weight: 600;
+      background-color: #eff6ff;
+      
+      &.is-hovering,
+      &:hover {
+        background-color: #dbeafe !important;
+      }
+    }
+  }
+}
+
+// Element Plus Popper 组件（全局样式，因为会 Teleport 到 body）
+// 深色模式
+html.dark {
+  .el-popper.is-light {
+    background-color: #1e293b !important;
+    border-color: #475569 !important;
+    color: #d1d5db !important;
+    
+    .el-popper__arrow::before {
+      background-color: #1e293b !important;
+      border-color: #475569 !important;
+    }
+  }
+  
+  // Tooltip 深色模式
+  .el-tooltip__popper.is-light {
+    background-color: #1e293b !important;
+    border-color: #475569 !important;
+    color: #d1d5db !important;
+    
+    .el-tooltip__arrow::before {
+      background-color: #1e293b !important;
+      border-color: #475569 !important;
+    }
+  }
+}
+
+// 浅色模式
+html:not(.dark) {
+  .el-popper.is-light {
+    background-color: #ffffff !important;
+    border-color: #e5e7eb !important;
+    color: #374151 !important;
+    
+    .el-popper__arrow::before {
+      background-color: #ffffff !important;
+      border-color: #e5e7eb !important;
+    }
+  }
+  
+  // Tooltip 浅色模式
+  .el-tooltip__popper.is-light {
+    background-color: #ffffff !important;
+    border-color: #e5e7eb !important;
+    color: #374151 !important;
+    
+    .el-tooltip__arrow::before {
+      background-color: #ffffff !important;
+      border-color: #e5e7eb !important;
+    }
+  }
+}
+
+.dark {
+  // Element Plus 菜单组件
+  .el-menu {
+    --el-menu-bg-color: transparent;
+    --el-menu-text-color: #d1d5db;
+    --el-menu-hover-bg-color: rgba(14, 165, 233, 0.1);
+    --el-menu-hover-text-color: #38bdf8;
+    --el-menu-active-color: #0ea5e9;
+  }
+  
+  // Element Plus 开关组件 - 深色模式
+  .el-switch {
+    --el-switch-on-color: #0ea5e9;
+    --el-switch-off-color: #475569;
+    --el-switch-border-color: #334155;
+    
+    // 开启状态优化
+    &.is-checked {
+      .el-switch__core {
+        background-color: #0ea5e9;
+        border-color: #0ea5e9;
+      }
+      
+      &:hover .el-switch__core {
+        background-color: #38bdf8;
+      }
+    }
+    
+    // 关闭状态
+    .el-switch__core {
+      background-color: #475569;
+      border-color: #475569;
+      
+      &:hover {
+        background-color: #64748b;
+      }
+    }
+  }
+  
+  // Element Plus 表单组件
+  .el-form-item {
+    --el-text-color-regular: #d1d5db;
+    
+    .el-form-item__label {
+      color: #d1d5db;
+    }
+    
+    .el-form-item__error {
+      color: #f87171;
     }
   }
 }

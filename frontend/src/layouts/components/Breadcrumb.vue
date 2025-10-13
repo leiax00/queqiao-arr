@@ -47,10 +47,7 @@ const routeIcons: Record<string, any> = {
 const routeTitles: Record<string, string> = {
   '/': '首页',
   '/dashboard': '仪表板',
-  '/config': '配置管理',
-  '/config/sonarr': 'Sonarr配置',
-  '/config/prowlarr': 'Prowlarr配置',
-  '/config/proxy': '代理设置',
+  '/config': '配置中心',
   '/system': '系统管理',
   '/logs': '日志管理',
   '/profile': '个人资料',
