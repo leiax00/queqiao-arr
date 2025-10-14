@@ -27,6 +27,7 @@ class ServiceConfigOut(BaseModel):
     api_key_masked: Optional[str] = Field(default=None, description="API Key 掩码，仅展示末4位")
     username: Optional[str] = Field(default=None, description="用户名（可选）")
     is_active: bool = Field(description="是否启用")
+    extra_config: Optional[Dict[str, Any]] = Field(default=None, description="额外配置（JSON 反序列化）")
     created_at: Optional[str] = Field(default=None, description="创建时间 ISO8601")
     updated_at: Optional[str] = Field(default=None, description="更新时间 ISO8601")
 
@@ -174,21 +175,30 @@ async def get_configurations(
         middle_len = length - 8
         return f"{prefix}{'*' * middle_len}{suffix}"
 
-    services_out = [
-        ServiceConfigOut(
-            id=s.id,
-            service_name=s.service_name,
-            service_type=s.service_type,
-            name=s.name,
-            url=s.url,
-            api_key_masked=mask_api_key(encryption_manager.decrypt(s.api_key) if s.api_key else None),
-            username=s.username,
-            is_active=s.is_active,
-            created_at=s.created_at.isoformat() if getattr(s, "created_at", None) else None,
-            updated_at=s.updated_at.isoformat() if getattr(s, "updated_at", None) else None,
+    import json
+    services_out = []
+    for s in services:
+        extra: Optional[Dict[str, Any]] = None
+        if getattr(s, "extra_config", None):
+            try:
+                extra = json.loads(s.extra_config)
+            except Exception:
+                extra = None
+        services_out.append(
+            ServiceConfigOut(
+                id=s.id,
+                service_name=s.service_name,
+                service_type=s.service_type,
+                name=s.name,
+                url=s.url,
+                api_key_masked=mask_api_key(encryption_manager.decrypt(s.api_key) if s.api_key else None),
+                username=s.username,
+                is_active=s.is_active,
+                extra_config=extra,
+                created_at=s.created_at.isoformat() if getattr(s, "created_at", None) else None,
+                updated_at=s.updated_at.isoformat() if getattr(s, "updated_at", None) else None,
+            )
         )
-        for s in services
-    ]
     kv_out = [
         KVConfigOut(
             id=c.id,
