@@ -116,11 +116,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
-import { Link, InfoFilled, CircleCheck, CircleClose } from '@element-plus/icons-vue'
+import { InfoFilled, CircleCheck, CircleClose } from '@element-plus/icons-vue'
 import ConfigFormCard from '@/components/common/ConfigFormCard.vue'
 import SecretInput from '@/components/form/SecretInput.vue'
+import { configAPI } from '@/api/config'
+import type { OverviewResponse, TestConnectionRequest } from '@/api/types'
 
 // 代理配置
 const proxyFormRef = ref<FormInstance>()
@@ -181,26 +183,101 @@ const serviceRules = reactive<FormRules<ServiceConfig>>({
     { pattern: /^https?:\/\/.+/, message: '请输入有效的 URL（http:// 或 https://）', trigger: 'blur' },
   ],
   apiKey: [
-    { required: true, message: '请输入 API 密钥', trigger: 'blur' },
-    { min: 8, message: 'API 密钥长度至少 8 字符', trigger: 'blur' },
+    {
+      validator: (_rule, value: string, callback) => {
+        // 若已存在配置（有ID），apiKey 可为空；否则需 >= 8
+        const currentId = _rule?.field?.includes('prowlarr') ? prowlarrId.value : sonarrId.value
+        if (currentId !== null && (!value || value.length === 0)) return callback()
+        if (!value || value.length < 8) return callback(new Error('API 密钥长度至少 8 字符'))
+        return callback()
+      },
+      trigger: 'blur',
+    },
   ],
 })
 
 
-// 计算属性
-const isSonarrValid = computed(() => !!sonarr.url && /^https?:\/\/.+/.test(sonarr.url) && sonarr.apiKey.length >= 8)
-const isProwlarrValid = computed(() => !!prowlarr.url && /^https?:\/\/.+/.test(prowlarr.url) && prowlarr.apiKey.length >= 8)
+// 已有配置ID（用于判断更新/创建、以及按ID测试）
+const sonarrId = ref<number | null>(null)
+const prowlarrId = ref<number | null>(null)
+const proxyId = ref<number | null>(null)
+
+// 计算属性（允许已存在配置但不输入新 API Key 的场景）
+const isSonarrValid = computed(() => !!sonarr.url && /^https?:\/\/.+/.test(sonarr.url) && (sonarr.apiKey.length >= 8 || sonarrId.value !== null))
+const isProwlarrValid = computed(() => !!prowlarr.url && /^https?:\/\/.+/.test(prowlarr.url) && (prowlarr.apiKey.length >= 8 || prowlarrId.value !== null))
 const sonarrChanged = computed(() => JSON.stringify(sonarr) !== JSON.stringify(sonarrInitial))
 const prowlarrChanged = computed(() => JSON.stringify(prowlarr) !== JSON.stringify(prowlarrInitial))
+
+// 拉取概览并填充表单
+const loadOverview = async () => {
+  try {
+    const data: OverviewResponse = await configAPI.getOverview()
+    // 服务配置
+    const svc = (name: 'sonarr' | 'prowlarr' | 'proxy') => data.services.find(s => s.service_name === name) || null
+    const sonarrSvc = svc('sonarr')
+    const prowlarrSvc = svc('prowlarr')
+    const proxySvc = svc('proxy')
+
+    if (sonarrSvc) {
+      sonarrId.value = sonarrSvc.id
+      sonarr.url = sonarrSvc.url || ''
+      sonarr.apiKey = '' // 不回显密钥
+      // useProxy 无法从后端读取（extra_config 未回传），维持本地默认
+      Object.assign(sonarrInitial, sonarr)
+    }
+    if (prowlarrSvc) {
+      prowlarrId.value = prowlarrSvc.id
+      prowlarr.url = prowlarrSvc.url || ''
+      prowlarr.apiKey = ''
+      Object.assign(prowlarrInitial, prowlarr)
+    }
+    if (proxySvc) {
+      proxyId.value = proxySvc.id
+      proxy.address = proxySvc.url || ''
+      // type/timeout 暂无回显字段，保留默认
+      Object.assign(proxyInitial, proxy)
+    }
+  } catch (e) {
+    ElMessage.error('加载配置失败')
+  }
+}
+
+onMounted(() => {
+  loadOverview()
+})
 
 // 代理操作
 const saveProxy = async () => {
   try {
     await proxyFormRef.value?.validate()
     proxySaving.value = true
-    await new Promise(r => setTimeout(r, 800))
+    const payload = {
+      type: 'service',
+      service_name: 'proxy',
+      service_type: 'proxy',
+      name: '默认',
+      url: proxy.address || '',
+      extra_config: {
+        type: proxy.type,
+        timeout_ms: proxy.timeout,
+      },
+      is_active: true,
+    } as const
+
+    if (proxyId.value != null) {
+      await configAPI.updateConfig(proxyId.value, {
+        url: payload.url,
+        extra_config: payload.extra_config,
+        is_active: true,
+      })
+    } else {
+      const res = await configAPI.createConfig(payload)
+      proxyId.value = res.id
+    }
     Object.assign(proxyInitial, proxy)
     ElMessage.success('代理配置保存成功')
+  } catch (e) {
+    ElMessage.error('代理配置保存失败')
   } finally {
     proxySaving.value = false
   }
@@ -245,9 +322,33 @@ const saveSonarr = async () => {
   try {
     await sonarrFormRef.value?.validate()
     sonarrSaving.value = true
-    await new Promise(r => setTimeout(r, 800))
+    const payloadBase = {
+      url: sonarr.url,
+      extra_config: { useProxy: sonarr.useProxy },
+      is_active: true,
+    } as any
+
+    if (sonarr.apiKey) payloadBase.api_key = sonarr.apiKey
+
+    if (sonarrId.value != null) {
+      await configAPI.updateConfig(sonarrId.value, payloadBase)
+    } else {
+      const res = await configAPI.createConfig({
+        type: 'service',
+        service_name: 'sonarr',
+        service_type: 'api',
+        name: '默认',
+        url: sonarr.url,
+        api_key: sonarr.apiKey || undefined,
+        extra_config: { useProxy: sonarr.useProxy },
+        is_active: true,
+      })
+      sonarrId.value = res.id
+    }
     Object.assign(sonarrInitial, sonarr)
     ElMessage.success('Sonarr 配置保存成功')
+  } catch (e) {
+    ElMessage.error('Sonarr 配置保存失败')
   } finally {
     sonarrSaving.value = false
   }
@@ -258,21 +359,27 @@ const testSonarr = async () => {
     await sonarrFormRef.value?.validate()
     sonarrTesting.value = true
     sonarrTestStatus.value = null
-    await new Promise(r => setTimeout(r, 1200))
-    // 模拟随机成功/失败
-    const success = Math.random() > 0.2
-    if (success) {
+    let body: TestConnectionRequest
+    if (!sonarr.apiKey && sonarrId.value != null) {
+      body = { mode: 'by_id', id: sonarrId.value }
+    } else {
+      body = {
+        mode: 'by_body',
+        service_name: 'sonarr',
+        url: sonarr.url,
+        api_key: sonarr.apiKey || undefined,
+      }
+      if (sonarr.useProxy && proxy.address) {
+        ;(body as any).proxy = { http: proxy.address, https: proxy.address }
+      }
+    }
+    const res = await configAPI.testConnection(body)
+    if (res.ok) {
       sonarrTestStatus.value = 'success'
-      ElMessage.success({
-        message: 'Sonarr 连接成功！版本 v3.0.10，延迟 123ms',
-        duration: 3000,
-      })
+      ElMessage.success({ message: `Sonarr 连接成功！${res.details}`, duration: 3000 })
     } else {
       sonarrTestStatus.value = 'error'
-      ElMessage.error({
-        message: 'Sonarr 连接失败，请检查服务地址和 API 密钥',
-        duration: 4000,
-      })
+      ElMessage.error({ message: `Sonarr 连接失败：${res.details}`, duration: 4000 })
     }
   } catch (e) {
     sonarrTestStatus.value = 'error'
@@ -292,9 +399,32 @@ const saveProwlarr = async () => {
   try {
     await prowlarrFormRef.value?.validate()
     prowlarrSaving.value = true
-    await new Promise(r => setTimeout(r, 800))
+    const payloadBase = {
+      url: prowlarr.url,
+      extra_config: { useProxy: prowlarr.useProxy },
+      is_active: true,
+    } as any
+    if (prowlarr.apiKey) payloadBase.api_key = prowlarr.apiKey
+
+    if (prowlarrId.value != null) {
+      await configAPI.updateConfig(prowlarrId.value, payloadBase)
+    } else {
+      const res = await configAPI.createConfig({
+        type: 'service',
+        service_name: 'prowlarr',
+        service_type: 'api',
+        name: '默认',
+        url: prowlarr.url,
+        api_key: prowlarr.apiKey || undefined,
+        extra_config: { useProxy: prowlarr.useProxy },
+        is_active: true,
+      })
+      prowlarrId.value = res.id
+    }
     Object.assign(prowlarrInitial, prowlarr)
     ElMessage.success('Prowlarr 配置保存成功')
+  } catch (e) {
+    ElMessage.error('Prowlarr 配置保存失败')
   } finally {
     prowlarrSaving.value = false
   }
@@ -305,21 +435,27 @@ const testProwlarr = async () => {
     await prowlarrFormRef.value?.validate()
     prowlarrTesting.value = true
     prowlarrTestStatus.value = null
-    await new Promise(r => setTimeout(r, 1200))
-    // 模拟随机成功/失败
-    const success = Math.random() > 0.2
-    if (success) {
+    let body: TestConnectionRequest
+    if (!prowlarr.apiKey && prowlarrId.value != null) {
+      body = { mode: 'by_id', id: prowlarrId.value }
+    } else {
+      body = {
+        mode: 'by_body',
+        service_name: 'prowlarr',
+        url: prowlarr.url,
+        api_key: prowlarr.apiKey || undefined,
+      }
+      if (prowlarr.useProxy && proxy.address) {
+        ;(body as any).proxy = { http: proxy.address, https: proxy.address }
+      }
+    }
+    const res = await configAPI.testConnection(body)
+    if (res.ok) {
       prowlarrTestStatus.value = 'success'
-      ElMessage.success({
-        message: 'Prowlarr 连接成功！版本 v1.10.5，延迟 156ms',
-        duration: 3000,
-      })
+      ElMessage.success({ message: `Prowlarr 连接成功！${res.details}`, duration: 3000 })
     } else {
       prowlarrTestStatus.value = 'error'
-      ElMessage.error({
-        message: 'Prowlarr 连接失败，请检查服务地址和 API 密钥',
-        duration: 4000,
-      })
+      ElMessage.error({ message: `Prowlarr 连接失败：${res.details}`, duration: 4000 })
     }
   } catch (e) {
     prowlarrTestStatus.value = 'error'

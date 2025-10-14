@@ -94,6 +94,85 @@ export interface ConnectionTestResult {
   details: string
 }
 
+// ---- B-02 配置模块契约（FE-05 使用） ----
+
+export type ServiceName = 'sonarr' | 'prowlarr' | 'proxy'
+
+export interface ServiceConfigOut {
+  id: number
+  service_name: ServiceName
+  service_type: 'api' | 'proxy'
+  name: string
+  url: string
+  api_key_masked?: string | null
+  username?: string | null
+  is_active: boolean
+  created_at?: string | null
+  updated_at?: string | null
+}
+
+export interface KVConfigOut {
+  id: number
+  key: string
+  value?: string | null
+  is_encrypted: boolean
+  is_active: boolean
+  created_at?: string | null
+  updated_at?: string | null
+}
+
+export interface OverviewResponse {
+  services: ServiceConfigOut[]
+  kv: KVConfigOut[]
+}
+
+export interface ServiceConfigCreate {
+  type: 'service'
+  service_name: ServiceName
+  service_type: 'api' | 'proxy'
+  name: string
+  url: string
+  api_key?: string | null
+  username?: string | null
+  password?: string | null
+  extra_config?: Record<string, any> | null
+  is_active?: boolean
+}
+
+export interface KVConfigCreate {
+  type: 'kv'
+  key: string
+  value?: string | null
+  description?: string | null
+  is_encrypted?: boolean
+  is_active?: boolean
+}
+
+export type ServiceConfigUpdate = Partial<Omit<ServiceConfigCreate, 'type'>>
+export type KVConfigUpdate = Partial<Omit<KVConfigCreate, 'type'>>
+
+export interface TestConnectionByBody {
+  mode: 'by_body'
+  service_name: Exclude<ServiceName, 'proxy'>
+  url: string
+  api_key?: string | null
+  username?: string | null
+  password?: string | null
+  proxy?: Record<string, string> | null
+}
+
+export interface TestConnectionById {
+  mode: 'by_id'
+  id: number
+}
+
+export type TestConnectionRequest = TestConnectionByBody | TestConnectionById
+
+export interface TestConnectionResponse {
+  ok: boolean
+  details: string
+}
+
 // 系统相关类型
 export interface HealthCheck {
   status: 'healthy' | 'unhealthy'
