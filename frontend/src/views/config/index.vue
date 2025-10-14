@@ -15,7 +15,7 @@
               <el-input v-model="sonarr.url" placeholder="http://127.0.0.1:8989" />
             </el-form-item>
             <el-form-item label="API 密钥" prop="apiKey">
-              <SecretInput v-model="sonarr.apiKey" placeholder="请输入 API Key" hint="已保存的密钥不会回显明文" />
+              <SecretInput v-model="sonarr.apiKey" placeholder="请输入 API Key" :hint="sonarrHint" />
             </el-form-item>
             <el-form-item label="启用代理">
               <el-switch v-model="sonarr.useProxy" />
@@ -44,7 +44,7 @@
               <el-input v-model="prowlarr.url" placeholder="http://127.0.0.1:9696" />
             </el-form-item>
             <el-form-item label="API 密钥" prop="apiKey">
-              <SecretInput v-model="prowlarr.apiKey" placeholder="请输入 API Key" hint="已保存的密钥不会回显明文" />
+              <SecretInput v-model="prowlarr.apiKey" placeholder="请输入 API Key" :hint="prowlarrHint" />
             </el-form-item>
             <el-form-item label="启用代理">
               <el-switch v-model="prowlarr.useProxy" />
@@ -164,6 +164,7 @@ const defaultService = (): ServiceConfig => ({
 const sonarrFormRef = ref<FormInstance>()
 const sonarr = reactive<ServiceConfig>(defaultService())
 const sonarrInitial = reactive<ServiceConfig>({ ...sonarr })
+const sonarrHint = ref<string>('已保存的密钥不会回显明文')
 const sonarrSaving = ref(false)
 const sonarrTesting = ref(false)
 const sonarrTestStatus = ref<'success' | 'error' | null>(null)
@@ -172,6 +173,7 @@ const sonarrTestStatus = ref<'success' | 'error' | null>(null)
 const prowlarrFormRef = ref<FormInstance>()
 const prowlarr = reactive<ServiceConfig>(defaultService())
 const prowlarrInitial = reactive<ServiceConfig>({ ...prowlarr })
+const prowlarrHint = ref<string>('已保存的密钥不会回显明文')
 const prowlarrSaving = ref(false)
 const prowlarrTesting = ref(false)
 const prowlarrTestStatus = ref<'success' | 'error' | null>(null)
@@ -222,6 +224,11 @@ const loadOverview = async () => {
       sonarrId.value = sonarrSvc.id
       sonarr.url = sonarrSvc.url || ''
       sonarr.apiKey = '' // 不回显密钥
+      if (sonarrSvc.api_key_masked) {
+        sonarrHint.value = `已保存：${sonarrSvc.api_key_masked}`
+      } else {
+        sonarrHint.value = '已保存的密钥不会回显明文'
+      }
       // useProxy 无法从后端读取（extra_config 未回传），维持本地默认
       Object.assign(sonarrInitial, sonarr)
     }
@@ -229,6 +236,11 @@ const loadOverview = async () => {
       prowlarrId.value = prowlarrSvc.id
       prowlarr.url = prowlarrSvc.url || ''
       prowlarr.apiKey = ''
+      if (prowlarrSvc.api_key_masked) {
+        prowlarrHint.value = `已保存：${prowlarrSvc.api_key_masked}`
+      } else {
+        prowlarrHint.value = '已保存的密钥不会回显明文'
+      }
       Object.assign(prowlarrInitial, prowlarr)
     }
     if (proxySvc) {
