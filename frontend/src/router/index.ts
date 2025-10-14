@@ -54,29 +54,11 @@ const router = createRouter({
           },
         },
         {
-          path: '/config/sonarr',
-          name: 'SonarrConfig',
-          component: () => import('@/views/config/Sonarr.vue'),
+          path: '/config',
+          name: 'Config',
+          component: () => import('@/views/config/index.vue'),
           meta: {
-            title: 'Sonarr配置',
-            requiresAuth: true,
-          },
-        },
-        {
-          path: '/config/prowlarr',
-          name: 'ProwlarrConfig',
-          component: () => import('@/views/config/Prowlarr.vue'),
-          meta: {
-            title: 'Prowlarr配置',
-            requiresAuth: true,
-          },
-        },
-        {
-          path: '/config/proxy',
-          name: 'ProxyConfig',
-          component: () => import('@/views/config/Proxy.vue'),
-          meta: {
-            title: '代理设置',
+            title: '配置中心',
             requiresAuth: true,
           },
         },

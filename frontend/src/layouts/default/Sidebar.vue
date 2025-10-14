@@ -22,24 +22,10 @@
           <template #title>仪表板</template>
         </el-menu-item>
 
-        <el-sub-menu index="config">
-          <template #title>
-            <el-icon><Setting /></el-icon>
-            <span>配置管理</span>
-          </template>
-          <el-menu-item index="/config/sonarr">
-            <el-icon><Monitor /></el-icon>
-            <template #title>Sonarr配置</template>
-          </el-menu-item>
-          <el-menu-item index="/config/prowlarr">
-            <el-icon><Search /></el-icon>
-            <template #title>Prowlarr配置</template>
-          </el-menu-item>
-          <el-menu-item index="/config/proxy">
-            <el-icon><Connection /></el-icon>
-            <template #title>代理设置</template>
-          </el-menu-item>
-        </el-sub-menu>
+        <el-menu-item index="/config">
+          <el-icon><Setting /></el-icon>
+          <template #title>配置中心</template>
+        </el-menu-item>
 
         <el-menu-item index="/system">
           <el-icon><Monitor /></el-icon>

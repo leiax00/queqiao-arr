@@ -49,15 +49,35 @@ export interface UserInfo {
 }
 
 // 配置相关类型
-export interface ConfigData {
+export type ProxyMode = 'inherit' | 'custom' | 'direct'
+
+export interface ServiceConfigData {
+  name: string
   url: string
-  api_key: string
-  enabled: boolean
+  apiKey: string
+  username?: string
+  password?: string
+  timeoutMs?: number
+  isActive: boolean
+  proxyMode: ProxyMode
+  httpProxy?: string
+  httpsProxy?: string
+  socks5Proxy?: string
+  noProxy?: string
 }
 
 export interface ProxyConfigData {
-  http_proxy?: string
-  https_proxy?: string
+  enabled: boolean
+  httpProxy?: string
+  httpsProxy?: string
+  socks5Proxy?: string
+  noProxy?: string
+  scope?: string[]
+}
+
+export interface ConfigData {
+  url: string
+  api_key: string
   enabled: boolean
 }
 
@@ -66,6 +86,12 @@ export interface ConfigResponse {
   type: 'sonarr' | 'prowlarr' | 'proxy'
   config: ConfigData | ProxyConfigData
   updated_at: string
+}
+
+export interface ConnectionTestResult {
+  ok: boolean
+  latency_ms?: number
+  details: string
 }
 
 // 系统相关类型

@@ -52,28 +52,12 @@
     <div class="quick-actions">
       <h2 class="section-title">快速操作</h2>
       <div class="actions-grid">
-        <el-card class="action-card" @click="$router.push('/config/sonarr')">
+        <el-card class="action-card" @click="$router.push('/config')">
           <div class="action-icon">
-            <el-icon><Monitor /></el-icon>
+            <el-icon><Setting /></el-icon>
           </div>
-          <div class="action-title">配置 Sonarr</div>
-          <div class="action-desc">设置 Sonarr 连接参数</div>
-        </el-card>
-        
-        <el-card class="action-card" @click="$router.push('/config/prowlarr')">
-          <div class="action-icon">
-            <el-icon><Search /></el-icon>
-          </div>
-          <div class="action-title">配置 Prowlarr</div>
-          <div class="action-desc">设置 Prowlarr 索引器</div>
-        </el-card>
-        
-        <el-card class="action-card" @click="$router.push('/config/proxy')">
-          <div class="action-icon">
-            <el-icon><Connection /></el-icon>
-          </div>
-          <div class="action-title">代理设置</div>
-          <div class="action-desc">配置网络代理参数</div>
+          <div class="action-title">配置中心</div>
+          <div class="action-desc">配置 Sonarr、Prowlarr 与代理</div>
         </el-card>
         
         <el-card class="action-card" @click="$router.push('/logs')">
@@ -95,9 +79,7 @@ import {
   Clock, 
   Close, 
   DataAnalysis, 
-  Monitor, 
-  Search, 
-  Connection, 
+  Setting,
   Document 
 } from '@element-plus/icons-vue'
 
