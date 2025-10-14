@@ -31,8 +31,8 @@
   - UI 已完成（见 FE-04），目前页面内逻辑为本地占位，未调用后端
   - 前端 `frontend/src/api/config.ts` 使用占位路径：`/config/sonarr`、`/config/prowlarr`、`/config/proxy`、`/config/{type}/test`
 - 后端（B-02）现有接口：统一前缀 `/api/v1/config`
-  - 获取概览：`GET /api/v1/config`
-  - 创建：`POST /api/v1/config`
+  - 获取概览：`GET /api/v1/config/`（集合资源，末尾带斜杠）
+  - 创建：`POST /api/v1/config/`（集合资源，末尾带斜杠）
   - 更新：`PUT /api/v1/config/{id}`
   - 删除：`DELETE /api/v1/config/{id}`
   - 测试连接：`POST /api/v1/config/test-connection`
@@ -82,8 +82,8 @@
 ### 5.1 API 层（`frontend/src/api/config.ts`）
 
 - 替换为 REST 风格方法：
-  - `getOverview(): GET /api/v1/config`
-  - `createConfig(payload)`、`updateConfig(id, payload)`、`deleteConfig(id)`
+  - `getOverview(): GET /api/v1/config/`
+  - `createConfig(payload): POST /api/v1/config/`、`updateConfig(id, payload): PUT /api/v1/config/{id}`、`deleteConfig(id): DELETE /api/v1/config/{id}`
   - `testConnection(body)` → `POST /api/v1/config/test-connection`
 - 类型定义：对齐后端 `ServiceConfigOut`、`KVConfigOut` 和创建/更新 payload
 - 兼容敏感字段策略：`api_key` 可选；仅在用户输入时携带
