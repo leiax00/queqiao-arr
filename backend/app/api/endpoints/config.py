@@ -161,10 +161,18 @@ async def get_configurations(
     kvs = await crud_config.get_configurations(db, is_active=is_active)
 
     def mask_api_key(value: Optional[str]) -> Optional[str]:
+        """返回长度保持一致的掩码：前后各4位可见，中间以*填充。
+        对于长度<=8的短密钥，出于安全考虑全部以*遮蔽。
+        """
         if not value:
             return None
-        tail = value[-4:] if len(value) >= 4 else value
-        return f"****{tail}"
+        length = len(value)
+        if length <= 8:
+            return "*" * length
+        prefix = value[:4]
+        suffix = value[-4:]
+        middle_len = length - 8
+        return f"{prefix}{'*' * middle_len}{suffix}"
 
     services_out = [
         ServiceConfigOut(
