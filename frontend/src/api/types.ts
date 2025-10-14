@@ -107,6 +107,7 @@ export interface ServiceConfigOut {
   api_key_masked?: string | null
   username?: string | null
   is_active: boolean
+  extra_config?: Record<string, any> | null
   created_at?: string | null
   updated_at?: string | null
 }

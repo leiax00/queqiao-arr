@@ -229,7 +229,10 @@ const loadOverview = async () => {
       } else {
         sonarrHint.value = '已保存的密钥不会回显明文'
       }
-      // useProxy 无法从后端读取（extra_config 未回传），维持本地默认
+      // 回显 useProxy
+      if (sonarrSvc.extra_config && typeof sonarrSvc.extra_config.useProxy === 'boolean') {
+        sonarr.useProxy = !!sonarrSvc.extra_config.useProxy
+      }
       Object.assign(sonarrInitial, sonarr)
     }
     if (prowlarrSvc) {
@@ -241,12 +244,18 @@ const loadOverview = async () => {
       } else {
         prowlarrHint.value = '已保存的密钥不会回显明文'
       }
+      if (prowlarrSvc.extra_config && typeof prowlarrSvc.extra_config.useProxy === 'boolean') {
+        prowlarr.useProxy = !!prowlarrSvc.extra_config.useProxy
+      }
       Object.assign(prowlarrInitial, prowlarr)
     }
     if (proxySvc) {
       proxyId.value = proxySvc.id
       proxy.address = proxySvc.url || ''
-      // type/timeout 暂无回显字段，保留默认
+      if (proxySvc.extra_config) {
+        if (typeof proxySvc.extra_config.type === 'string') proxy.type = proxySvc.extra_config.type
+        if (typeof proxySvc.extra_config.timeout_ms === 'number') proxy.timeout = proxySvc.extra_config.timeout_ms
+      }
       Object.assign(proxyInitial, proxy)
     }
   } catch (e) {

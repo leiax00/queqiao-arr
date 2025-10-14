@@ -37,7 +37,7 @@
    - `Configuration`：通用 KV 配置（例如默认语言、全局代理等）。
 2. 敏感信息与回显策略：
    - 入库前对 `api_key`、`password`、以及需要保密的 KV `value` 加密。
-   - 查询/列表中不回显明文，仅提供掩码（如 `****abcd`）或不返回该字段。
+   - 查询/列表中不回显明文，提供长度保持一致的掩码：前后各4位明文，中间用 `*` 填充；当密钥长度 ≤ 8 时全部遮蔽为 `*`。
    - 连接测试仅在内存临时解密使用，不在响应体回显明文。
 3. 唯一性与状态：
    - 建议对 `service_name + name` 保持唯一。允许多份配置并存，通过 `is_active` 表示启用状态。
@@ -56,6 +56,7 @@
 ### 4.1 GET `/api/v1/config/`
 - 用途：获取配置概要列表（服务配置与部分 KV 条目）。
 - 查询参数：`service_name`（可选），`is_active`（可选）。
+- 说明：服务配置项将返回 `extra_config`（JSON 反序列化后的对象），便于前端回显，例如 `useProxy`（布尔）、代理 `type` 与 `timeout_ms` 等。
 - 响应示例：
 ```json
 {
@@ -66,7 +67,8 @@
       "service_type": "api",
       "name": "默认Sonarr",
       "url": "http://127.0.0.1:8989",
-      "api_key_masked": "****9f2c",
+      "api_key_masked": "abcd********9f2c",
+      "extra_config": { "useProxy": true },
       "is_active": true,
       "created_at": "2025-10-12T10:00:00Z",
       "updated_at": "2025-10-12T11:00:00Z"
@@ -77,7 +79,8 @@
       "service_type": "api",
       "name": "默认Prowlarr",
       "url": "http://127.0.0.1:9696",
-      "api_key_masked": "****a12b",
+      "api_key_masked": "z9x8********a12b",
+      "extra_config": { "useProxy": false },
       "is_active": true,
       "created_at": "2025-10-12T10:00:00Z",
       "updated_at": "2025-10-12T11:00:00Z"
@@ -160,6 +163,7 @@
   - `id: int`，`service_name: str`，`service_type: str`，`name: str`，`url: str`
   - `api_key: Text`（加密），`username: str?`，`password: Text?`（加密）
   - `extra_config: Text(JSON)`，`is_active: bool`，`created_at: datetime`，`updated_at: datetime`
+  - 查询返回体将把 `extra_config` 反序列化为对象返回，便于前端回显（例如 `useProxy: boolean`、代理 `type/timeout_ms` 等）。
 - 加密工具：`EncryptionManager`（PBKDF2 派生 + Fernet 对称加密）
 - 统一响应：`success_response` / `error_response`
 
