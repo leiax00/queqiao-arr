@@ -63,8 +63,10 @@
   - 表单 `type` → `extra_config.type`（`http`|`https`|`socks5`）
   - 表单 `timeout` → `extra_config.timeout_ms: number`
 - 读写策略与服务类似（按 `service_name=proxy` 找一条；无则创建，有则更新）。
-- 连接测试：不直接对代理做连通性验证；在 Sonarr/Prowlarr 测试时，若 `useProxy=true` 且存在代理配置，则拼装 `proxy` 传给后端：
-  - `proxy = { http: `${type}://${addressHost}`, https: `${type}://${addressHost}` }`
+- 连接测试：
+  - 增加可选字段“测试地址”（留空用后端默认），点击“测试连接”时调用 `POST /api/v1/config/test-proxy`，请求体包含测试 URL 与当前代理；返回 `{ ok, latency_ms, details }`。
+  - Sonarr/Prowlarr 测试仍复用 `test-connection`，当 `useProxy=true` 且存在代理配置时携带 `proxy`：
+    - `proxy = { http: `${type}://${addressHost}`, https: `${type}://${addressHost}` }`
 
 ### 4.3 测试连接（后端 `POST /api/v1/config/test-connection`）
 
@@ -85,6 +87,7 @@
   - `getOverview(): GET /api/v1/config/`
   - `createConfig(payload): POST /api/v1/config/`、`updateConfig(id, payload): PUT /api/v1/config/{id}`、`deleteConfig(id): DELETE /api/v1/config/{id}`
   - `testConnection(body)` → `POST /api/v1/config/test-connection`
+  - `testProxy(body)` → `POST /api/v1/config/test-proxy`（body: `{ url?: string, proxy: { http, https } }`）
 - 类型定义：对齐后端 `ServiceConfigOut`、`KVConfigOut` 和创建/更新 payload
 - 兼容敏感字段策略：`api_key` 可选；仅在用户输入时携带
 
@@ -94,7 +97,7 @@
 - 保存：分别对三张卡进行“存在则更新/不存在则创建”的分支处理
 - 测试：
   - Sonarr/Prowlarr：构造 `by_body` 调用后端；依据返回 `ok` 与否更新按钮图标与消息提示
-  - 代理：维持 UI 测试占位提示（不触发后端）
+  - 代理：添加“测试地址”输入（可选）；点“测试连接”时调用 `configAPI.testProxy` 并回显 latency/状态
 - 敏感字段：
   - 若读取到 `api_key_masked`，则表单 `apiKey` 为空并显示提示文案；
   - 仅当用户输入新值时，将 `api_key` 放入保存/测试请求；否则不传，避免清空已存密钥。

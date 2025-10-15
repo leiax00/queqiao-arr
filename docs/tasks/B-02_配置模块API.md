@@ -153,6 +153,26 @@
 { "ok": true, "latency_ms": 123, "details": "Ping /api/v3/system/status 成功" }
 ```
 
+### 4.6 POST `/api/v1/config/test-proxy`
+- 用途：测试代理连通性（可选指定测试目标 URL），用于快速判断代理是否可达及大致延迟。
+- 请求体：
+```json
+{
+  "url": "https://www.google.com/generate_204",
+  "proxy": {
+    "http": "http://127.0.0.1:7890",
+    "https": "http://127.0.0.1:7890"
+  }
+}
+```
+- 说明：
+  - `url` 可选；为空时使用后端默认目标（建议配置为 `GENERATE_204` 风格接口）；可根据部署环境调整。
+  - 代理使用与服务测试一致的 `httpx` 代理配置。
+- 响应示例：
+```json
+{ "ok": true, "latency_ms": 210, "details": "HTTP 204" }
+```
+
 ---
 
 ## 五、数据模型（当前仓库）
