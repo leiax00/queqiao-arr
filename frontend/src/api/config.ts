@@ -50,4 +50,13 @@ export const configAPI = {
       data: body,
     })
   },
+
+  // 测试代理连通性
+  testProxy: (body: { url?: string; proxy?: Record<string, string>; timeout_ms?: number }): Promise<{ ok: boolean; latency_ms?: number; details: string }> => {
+    return request({
+      url: '/config/test-proxy',
+      method: 'post',
+      data: body,
+    })
+  },
 }

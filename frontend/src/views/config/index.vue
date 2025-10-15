@@ -81,20 +81,14 @@
               <el-input v-model="proxy.address" placeholder="http://127.0.0.1:7890" />
             </el-form-item>
             
-            <div class="proxy-meta">
-              <el-form-item label="代理类型" prop="type" class="proxy-type">
-                <el-select v-model="proxy.type" placeholder="选择代理协议">
-                  <el-option label="HTTP" value="http" />
-                  <el-option label="HTTPS" value="https" />
-                  <el-option label="SOCKS5" value="socks5" />
-                </el-select>
-              </el-form-item>
-              
-              <el-form-item label="超时时间" prop="timeout" class="proxy-timeout">
-                <el-input-number v-model="proxy.timeout" :min="1000" :max="30000" :step="1000" controls-position="right" />
-                <span class="unit-hint">毫秒</span>
-              </el-form-item>
-            </div>
+            <el-form-item label="测试地址" prop="testUrl" class="proxy-test-url">
+              <el-input v-model="proxy.testUrl" placeholder="https://www.google.com/generate_204" />
+            </el-form-item>
+
+            <el-form-item label="超时时间" prop="timeout" class="proxy-timeout">
+              <el-input-number v-model="proxy.timeout" :min="1000" :max="30000" :step="1000" controls-position="right" />
+              <span class="unit-hint">毫秒</span>
+            </el-form-item>
             
             <div class="proxy-hint">
               <el-icon><InfoFilled /></el-icon>
@@ -134,7 +128,7 @@ import type { OverviewResponse, TestConnectionRequest } from '@/api/types'
 const proxyFormRef = ref<FormInstance>()
 const proxy = reactive({
   address: '',
-  type: 'http' as 'http' | 'https' | 'socks5',
+  testUrl: '',
   timeout: 5000,
 })
 const proxyInitial = reactive({ ...proxy })
@@ -142,6 +136,9 @@ const proxyInitial = reactive({ ...proxy })
 const proxyRules = reactive<FormRules>({
   address: [
     { pattern: /^(https?|socks5):\/\/.+/, message: '请输入有效的代理地址', trigger: 'blur' },
+  ],
+  testUrl: [
+    { pattern: /^(https?:)\/\/.+/, message: '请输入有效的测试地址', trigger: 'blur' },
   ],
   timeout: [
     { type: 'number', min: 1000, max: 30000, message: '超时时间应在 1-30 秒之间', trigger: 'change' },
@@ -327,21 +324,17 @@ const testProxy = async () => {
     await proxyFormRef.value?.validate()
     proxyTesting.value = true
     proxyTestStatus.value = null
-    await new Promise(r => setTimeout(r, 1500))
-    // 模拟随机成功/失败
-    const success = Math.random() > 0.3
-    if (success) {
+    const url = proxy.testUrl || undefined
+    const proxies = proxy.address ? { http: proxy.address, https: proxy.address } : undefined
+    const timeout_ms = proxy.timeout
+    const res = await configAPI.testProxy({ url, proxy: proxies, timeout_ms })
+    if (res.ok) {
       proxyTestStatus.value = 'success'
-      ElMessage.success({
-        message: '代理连通性测试成功！延迟 210ms',
-        duration: 3000,
-      })
+      const latency = res.latency_ms ? `延迟 ${res.latency_ms}ms` : res.details
+      ElMessage.success({ message: `代理连通性测试成功！${latency}`, duration: 3000 })
     } else {
       proxyTestStatus.value = 'error'
-      ElMessage.error({
-        message: '代理连接失败，请检查代理地址和网络连接',
-        duration: 4000,
-      })
+      ElMessage.error({ message: `代理连接失败：${res.details}`, duration: 4000 })
     }
   } catch (e) {
     proxyTestStatus.value = 'error'
@@ -535,13 +528,13 @@ const resetProwlarr = () => {
 
     .proxy-form {
       .proxy-form-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 20px 16px;
-        align-items: flex-start;
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: 20px 16px;
+            align-items: flex-start;
 
         @media (max-width: 1200px) {
-          grid-template-columns: 1fr;
+              grid-template-columns: 1fr;
         }
 
         .proxy-address {
@@ -549,35 +542,26 @@ const resetProwlarr = () => {
         }
 
         .proxy-meta {
-          grid-column: span 1;
-          display: flex;
-          gap: 12px;
-
-          @media (max-width: 1200px) {
-            flex-direction: column;
-            gap: 0;
-          }
-
-          .proxy-type,
-          .proxy-timeout {
-            flex: 1;
-            min-width: 0;
-          }
-
-          .proxy-timeout {
-            :deep(.el-form-item__content) {
-              display: flex;
-              align-items: center;
-              gap: 8px;
-            }
-
-            .unit-hint {
-              color: #64748b;
-              font-size: 14px;
-              white-space: nowrap;
-            }
-          }
+              grid-column: span 1;
         }
+
+            .proxy-test-url { grid-column: span 1; }
+
+            .proxy-timeout {
+              grid-column: span 1;
+              min-width: 260px;
+              :deep(.el-form-item__content) {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+              }
+
+              .unit-hint {
+                color: #64748b;
+                font-size: 14px;
+                white-space: nowrap;
+              }
+            }
 
         .proxy-hint {
           grid-column: 1 / -1;
