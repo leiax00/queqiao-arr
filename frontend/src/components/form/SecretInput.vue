@@ -26,7 +26,15 @@
     </el-input>
     <div v-if="hint" class="secret-hint">
       <el-icon class="hint-icon"><InfoFilled /></el-icon>
-      <span class="hint-text">{{ hint }}</span>
+      <span class="hint-text">
+        <template v-if="hint.startsWith('已保存：')">
+          <span class="hint-prefix">已保存：</span>
+          <span class="hint-mask">{{ hint.slice(4) }}</span>
+        </template>
+        <template v-else>
+          {{ hint }}
+        </template>
+      </span>
     </div>
   </div>
 </template>
@@ -105,8 +113,11 @@ const toggleShow = () => {
       color: #64748b;
     }
 
-    .hint-text {
-      color: #475569;
+    .hint-text { color: #475569; }
+    .hint-prefix { color: #64748b; }
+    .hint-mask {
+      color: var(--el-color-primary);
+      opacity: 0.85;
     }
   }
 }
@@ -122,9 +133,9 @@ const toggleShow = () => {
     color: #94a3b8 !important;
   }
   
-  .hint-text {
-    color: #cbd5e1 !important;
-  }
+  .hint-text { color: #cbd5e1 !important; }
+  .hint-prefix { color: #94a3b8 !important; }
+  .hint-mask { color: var(--el-color-primary) !important; opacity: 0.9; }
 }
 </style>
 
