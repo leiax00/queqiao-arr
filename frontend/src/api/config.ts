@@ -1,48 +1,62 @@
 import request from './request'
-import type { ConfigData, ConfigResponse, ProxyConfigData } from './types'
+import type {
+  OverviewResponse,
+  ServiceConfigCreate,
+  ServiceConfigUpdate,
+  TestConnectionRequest,
+  TestConnectionResponse,
+} from './types'
 
 export const configAPI = {
-  // 获取所有配置
-  getConfigs: (): Promise<ConfigResponse[]> => {
+  // 获取配置概览（服务 + KV）
+  getOverview: (): Promise<OverviewResponse> => {
     return request({
-      url: '/config',
+      url: '/config/',
       method: 'get',
     })
   },
 
-  // 更新Sonarr配置
-  updateSonarrConfig: (data: ConfigData): Promise<void> => {
+  // 创建配置（服务或KV）
+  createConfig: (payload: ServiceConfigCreate | any): Promise<{ id: number }> => {
     return request({
-      url: '/config/sonarr',
-      method: 'put',
-      data,
-    })
-  },
-
-  // 更新Prowlarr配置
-  updateProwlarrConfig: (data: ConfigData): Promise<void> => {
-    return request({
-      url: '/config/prowlarr',
-      method: 'put',
-      data,
-    })
-  },
-
-  // 更新代理配置
-  updateProxyConfig: (data: ProxyConfigData): Promise<void> => {
-    return request({
-      url: '/config/proxy',
-      method: 'put',
-      data,
-    })
-  },
-
-  // 测试配置连接
-  testConnection: (type: 'sonarr' | 'prowlarr', data: ConfigData): Promise<{ success: boolean; message: string }> => {
-    return request({
-      url: `/config/${type}/test`,
+      url: '/config/',
       method: 'post',
-      data,
+      data: payload,
+    })
+  },
+
+  // 更新配置（服务或KV）
+  updateConfig: (id: number, payload: ServiceConfigUpdate | any): Promise<{ id: number }> => {
+    return request({
+      url: `/config/${id}`,
+      method: 'put',
+      data: payload,
+    })
+  },
+
+  // 删除配置（服务或KV）
+  deleteConfig: (id: number): Promise<{ deleted: boolean }> => {
+    return request({
+      url: `/config/${id}`,
+      method: 'delete',
+    })
+  },
+
+  // 测试服务连接（Sonarr/Prowlarr）
+  testConnection: (body: TestConnectionRequest): Promise<TestConnectionResponse> => {
+    return request({
+      url: '/config/test-connection',
+      method: 'post',
+      data: body,
+    })
+  },
+
+  // 测试代理连通性
+  testProxy: (body: { url?: string; proxy?: Record<string, string>; timeout_ms?: number }): Promise<{ ok: boolean; latency_ms?: number; details: string }> => {
+    return request({
+      url: '/config/test-proxy',
+      method: 'post',
+      data: body,
     })
   },
 }

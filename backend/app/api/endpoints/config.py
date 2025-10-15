@@ -27,6 +27,7 @@ class ServiceConfigOut(BaseModel):
     api_key_masked: Optional[str] = Field(default=None, description="API Key 掩码，仅展示末4位")
     username: Optional[str] = Field(default=None, description="用户名（可选）")
     is_active: bool = Field(description="是否启用")
+    extra_config: Optional[Dict[str, Any]] = Field(default=None, description="额外配置（JSON 反序列化）")
     created_at: Optional[str] = Field(default=None, description="创建时间 ISO8601")
     updated_at: Optional[str] = Field(default=None, description="更新时间 ISO8601")
 
@@ -107,6 +108,12 @@ class TestConnectionById(BaseModel):
 TestConnectionRequest = TestConnectionByBody | TestConnectionById
 
 
+class ProxyTestRequest(BaseModel):
+    url: Optional[str] = Field(default=None, description="测试目标URL，留空使用后端默认")
+    proxy: Optional[Dict[str, str]] = Field(default=None, description="代理配置，如 {http, https}")
+    timeout_ms: Optional[int] = Field(default=None, ge=1000, le=30000, description="超时时间（毫秒，1-30秒）")
+
+
 @router.get(
     "/",
     summary="获取配置概览",
@@ -161,26 +168,43 @@ async def get_configurations(
     kvs = await crud_config.get_configurations(db, is_active=is_active)
 
     def mask_api_key(value: Optional[str]) -> Optional[str]:
+        """返回长度保持一致的掩码：前后各4位可见，中间以*填充。
+        对于长度<=8的短密钥，出于安全考虑全部以*遮蔽。
+        """
         if not value:
             return None
-        tail = value[-4:] if len(value) >= 4 else value
-        return f"****{tail}"
+        length = len(value)
+        if length <= 8:
+            return "*" * length
+        prefix = value[:4]
+        suffix = value[-4:]
+        middle_len = length - 8
+        return f"{prefix}{'*' * middle_len}{suffix}"
 
-    services_out = [
-        ServiceConfigOut(
-            id=s.id,
-            service_name=s.service_name,
-            service_type=s.service_type,
-            name=s.name,
-            url=s.url,
-            api_key_masked=mask_api_key(encryption_manager.decrypt(s.api_key) if s.api_key else None),
-            username=s.username,
-            is_active=s.is_active,
-            created_at=s.created_at.isoformat() if getattr(s, "created_at", None) else None,
-            updated_at=s.updated_at.isoformat() if getattr(s, "updated_at", None) else None,
+    import json
+    services_out = []
+    for s in services:
+        extra: Optional[Dict[str, Any]] = None
+        if getattr(s, "extra_config", None):
+            try:
+                extra = json.loads(s.extra_config)
+            except Exception:
+                extra = None
+        services_out.append(
+            ServiceConfigOut(
+                id=s.id,
+                service_name=s.service_name,
+                service_type=s.service_type,
+                name=s.name,
+                url=s.url,
+                api_key_masked=mask_api_key(encryption_manager.decrypt(s.api_key) if s.api_key else None),
+                username=s.username,
+                is_active=s.is_active,
+                extra_config=extra,
+                created_at=s.created_at.isoformat() if getattr(s, "created_at", None) else None,
+                updated_at=s.updated_at.isoformat() if getattr(s, "updated_at", None) else None,
+            )
         )
-        for s in services
-    ]
     kv_out = [
         KVConfigOut(
             id=c.id,
@@ -379,11 +403,14 @@ async def test_service_connection(
     import httpx
     import asyncio
 
-    async def check_sonarr(url: str, api_key: Optional[str], proxy: Optional[Dict[str, str]]):
-        headers = {}
+    async def check_service(service_name: str, url: str, api_key: Optional[str], proxy: Optional[Dict[str, str]]):
+        headers: Dict[str, str] = {}
         if api_key:
             headers["X-Api-Key"] = api_key
-        test_url = url.rstrip("/") + "/api/v3/system/status"
+        base = url.rstrip("/")
+        # Sonarr 使用 v3，Prowlarr 使用 v1
+        path = "/api/v3/system/status" if service_name == "sonarr" else "/api/v1/system/status"
+        test_url = base + path
         timeout = httpx.Timeout(5.0)
         try:
             async with httpx.AsyncClient(timeout=timeout, proxies=proxy) as client:
@@ -398,11 +425,20 @@ async def test_service_connection(
     raw_api_key: Optional[str] = None
     proxy: Optional[Dict[str, str]] = None
 
+    def normalize_proxies(p: Optional[Dict[str, str]]) -> Optional[Dict[str, str]]:
+        if not p:
+            return None
+        normalized: Dict[str, str] = {}
+        for k, v in p.items():
+            key = k if "://" in k else f"{k}://"
+            normalized[key] = v
+        return normalized
+
     if isinstance(payload, TestConnectionByBody):
         service_name = payload.service_name
         url = payload.url
         raw_api_key = payload.api_key
-        proxy = payload.proxy
+        proxy = normalize_proxies(payload.proxy)
     else:
         svc = await crud_config.get_service_config_by_id(db, config_id=payload.id)
         if not svc:
@@ -414,5 +450,50 @@ async def test_service_connection(
     if service_name not in {"sonarr", "prowlarr"}:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="仅支持 sonarr/prowlarr 连通性测试")
 
-    ok, note = await check_sonarr(url, raw_api_key, proxy)
+    ok, note = await check_service(service_name, url, raw_api_key, proxy)
     return success_response({"ok": ok, "details": note})
+
+
+@router.post(
+    "/test-proxy",
+    summary="测试代理连通性",
+    description="通过代理访问指定或默认的测试URL，返回可达性与延迟信息",
+)
+async def test_proxy_connectivity(
+    payload: ProxyTestRequest,
+    current_user=Depends(get_current_user),
+):
+    import httpx
+    import time
+
+    target_url = payload.url or "https://www.google.com/generate_204"
+    # 允许前端传入 1-30 秒范围的超时，默认 5 秒
+    timeout_seconds = 5.0
+    if payload.timeout_ms is not None:
+        try:
+            timeout_seconds = max(1.0, min(30.0, float(payload.timeout_ms) / 1000.0))
+        except Exception:
+            timeout_seconds = 5.0
+    timeout = httpx.Timeout(timeout_seconds)
+    start = time.perf_counter()
+    try:
+        proxies = None
+        if payload.proxy:
+            proxies = {}
+            for k, v in payload.proxy.items():
+                proxies[k if "://" in k else f"{k}://"] = v
+        # 在新版 httpx（尤其是 0.27+）中，proxies 的 key/value 格式必须是完整的 URL形式，而不是以前那种简单写 "http" 或 "https" 的形式。
+        # proxies = {
+        #     "http://": "http://127.0.0.1:7890",
+        #     "https://": "http://127.0.0.1:7890",
+        # }
+        async with httpx.AsyncClient(timeout=timeout, proxies=proxies) as client:
+            resp = await client.get(target_url)
+            latency_ms = int((time.perf_counter() - start) * 1000)
+            return success_response({
+                "ok": resp.status_code < 500,
+                "latency_ms": latency_ms,
+                "details": f"HTTP {resp.status_code}"
+            })
+    except Exception as e:
+        return success_response({"ok": False, "details": str(e)})
