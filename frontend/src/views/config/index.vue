@@ -3,6 +3,12 @@
     <div class="page-header">
       <h1 class="page-title">配置中心</h1>
       <p class="page-subtitle">快速配置 Sonarr、Prowlarr 与网络代理</p>
+      <div class="page-actions">
+        <el-button :loading="refreshing" @click="refreshConfigs">
+          <el-icon style="margin-right: 4px"><Refresh /></el-icon>
+          刷新
+        </el-button>
+      </div>
     </div>
 
     <div class="config-layout">
@@ -118,7 +124,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
-import { InfoFilled, CircleCheck, CircleClose } from '@element-plus/icons-vue'
+import { InfoFilled, CircleCheck, CircleClose, Refresh } from '@element-plus/icons-vue'
 import ConfigFormCard from '@/components/common/ConfigFormCard.vue'
 import SecretInput from '@/components/form/SecretInput.vue'
 import { configAPI } from '@/api/config'
@@ -266,6 +272,18 @@ const loadOverview = async () => {
 onMounted(() => {
   loadOverview()
 })
+
+// 刷新配置
+const refreshing = ref(false)
+const refreshConfigs = async () => {
+  try {
+    refreshing.value = true
+    await loadOverview()
+    ElMessage.success('配置已刷新')
+  } finally {
+    refreshing.value = false
+  }
+}
 
 // 代理操作
 const saveProxy = async () => {
