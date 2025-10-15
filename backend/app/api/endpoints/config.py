@@ -397,11 +397,14 @@ async def test_service_connection(
     import httpx
     import asyncio
 
-    async def check_sonarr(url: str, api_key: Optional[str], proxy: Optional[Dict[str, str]]):
-        headers = {}
+    async def check_service(service_name: str, url: str, api_key: Optional[str], proxy: Optional[Dict[str, str]]):
+        headers: Dict[str, str] = {}
         if api_key:
             headers["X-Api-Key"] = api_key
-        test_url = url.rstrip("/") + "/api/v3/system/status"
+        base = url.rstrip("/")
+        # Sonarr 使用 v3，Prowlarr 使用 v1
+        path = "/api/v3/system/status" if service_name == "sonarr" else "/api/v1/system/status"
+        test_url = base + path
         timeout = httpx.Timeout(5.0)
         try:
             async with httpx.AsyncClient(timeout=timeout, proxies=proxy) as client:
@@ -432,5 +435,5 @@ async def test_service_connection(
     if service_name not in {"sonarr", "prowlarr"}:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="仅支持 sonarr/prowlarr 连通性测试")
 
-    ok, note = await check_sonarr(url, raw_api_key, proxy)
+    ok, note = await check_service(service_name, url, raw_api_key, proxy)
     return success_response({"ok": ok, "details": note})
