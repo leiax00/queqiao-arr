@@ -256,7 +256,7 @@ const loadOverview = async () => {
       proxyId.value = proxySvc.id
       proxy.address = proxySvc.url || ''
       if (proxySvc.extra_config) {
-        if (typeof proxySvc.extra_config.type === 'string') proxy.type = proxySvc.extra_config.type
+        if (typeof proxySvc.extra_config.test_url === 'string') proxy.testUrl = proxySvc.extra_config.test_url
         if (typeof proxySvc.extra_config.timeout_ms === 'number') proxy.timeout = proxySvc.extra_config.timeout_ms
       }
       Object.assign(proxyInitial, proxy)
@@ -294,7 +294,7 @@ const saveProxy = async () => {
       name: '默认',
       url: proxy.address || '',
       extra_config: {
-        type: proxy.type,
+        test_url: proxy.testUrl || undefined,
         timeout_ms: proxy.timeout,
       },
       is_active: true,
