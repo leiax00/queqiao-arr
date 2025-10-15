@@ -148,13 +148,12 @@
 ## 十、进度追踪（Checklist）
 
 - [x] 任务文档（本文件）
-- [ ] API 层改造（`frontend/src/api/config.ts`）
-- [ ] 视图接入读取/保存（Sonarr / Prowlarr）
-- [ ] 视图接入读取/保存（Proxy）
-- [ ] 测试连接（Sonarr / Prowlarr by_body）
-- [ ] 敏感字段遮蔽与占位策略落地
-- [ ] 自测与截图记录
-- [ ] 提交 PR，申请评审
+- [x] API 层改造（`frontend/src/api/config.ts`）
+- [x] 视图接入读取/保存（Sonarr / Prowlarr）
+- [x] 视图接入读取/保存（Proxy）
+- [x] 测试连接（Sonarr / Prowlarr by_body）
+- [x] 敏感字段遮蔽与占位策略落地
+- [x] 自测与截图记录
 
 ---
 
