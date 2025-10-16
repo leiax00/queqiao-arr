@@ -400,24 +400,7 @@ async def test_service_connection(
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    import httpx
-    import asyncio
-
-    async def check_service(service_name: str, url: str, api_key: Optional[str], proxy: Optional[Dict[str, str]]):
-        headers: Dict[str, str] = {}
-        if api_key:
-            headers["X-Api-Key"] = api_key
-        base = url.rstrip("/")
-        # Sonarr 使用 v3，Prowlarr 使用 v1
-        path = "/api/v3/system/status" if service_name == "sonarr" else "/api/v1/system/status"
-        test_url = base + path
-        timeout = httpx.Timeout(5.0)
-        try:
-            async with httpx.AsyncClient(timeout=timeout, proxies=proxy) as client:
-                resp = await client.get(test_url, headers=headers)
-                return resp.status_code == 200, f"HTTP {resp.status_code}"
-        except Exception as e:
-            return False, str(e)
+    from app.services.clients import make_client
 
     # 准备参数
     service_name: Optional[str] = None
@@ -450,8 +433,19 @@ async def test_service_connection(
     if service_name not in {"sonarr", "prowlarr"}:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="仅支持 sonarr/prowlarr 连通性测试")
 
-    ok, note = await check_service(service_name, url, raw_api_key, proxy)
-    return success_response({"ok": ok, "details": note})
+    # 使用客户端层进行连接测试
+    try:
+        client = make_client(
+            service_name=service_name,
+            url=url,
+            api_key=raw_api_key,
+            proxies=proxy,
+            timeout=5
+        )
+        ok, note = client.check_status()
+        return success_response({"ok": ok, "details": note})
+    except ValueError as e:
+        return error_response(message=str(e), code=400)
 
 
 @router.post(
