@@ -48,7 +48,8 @@ async def test_create_and_list_service_config(monkeypatch):
         assert lst.status_code == 200
         data = lst.json()["data"]
         assert len(data["services"]) == 1
-        assert data["services"][0]["api_key_masked"].startswith("****")
+        # API Key "TESTKEY123456" (13位) 的掩码应为 "TEST*****3456" (前4位+中间5个星号+后4位)
+        assert data["services"][0]["api_key_masked"] == "TEST*****3456"
 
 
 @pytest.mark.asyncio
@@ -107,47 +108,46 @@ async def test_connection_success_and_fail(monkeypatch):
         login = await ac.post("/api/v1/auth/login", json={"username": "admin", "password": "P@ssw0rd"})
         token = login.json()["data"]["access_token"]
 
-        # Mock httpx.AsyncClient.get 成功
-        class MockResp:
-            status_code = 200
-
+        # Mock 客户端工厂和客户端的 check_status 方法
         class MockClientOK:
-            def __init__(self, *a, **k):
+            def __init__(self, *args, **kwargs):
                 pass
+            
+            def check_status(self):
+                return True, "连接成功"
 
-            async def __aenter__(self):
-                return self
+        class MockClientFail:
+            def __init__(self, *args, **kwargs):
+                pass
+            
+            def check_status(self):
+                return False, "连接失败: boom"
 
-            async def __aexit__(self, *exc):
-                return False
-
-            async def get(self, url, headers=None):
-                return MockResp()
-
-        import app.api.endpoints.config as cfg
-
-        async def ok_call(*a, **k):
+        # Mock 成功情况 - patch 客户端层的工厂
+        def make_client_ok(*args, **kwargs):
             return MockClientOK()
-
-        monkeypatch.setattr(cfg.httpx, "AsyncClient", MockClientOK)
+        
+        monkeypatch.setattr("app.services.clients.make_client", make_client_ok)
         ok = await ac.post(
             "/api/v1/config/test-connection",
             headers={"Authorization": f"Bearer {token}"},
-            json={"mode": "by_body", "service_name": "sonarr", "url": "http://x"},
+            json={"mode": "by_body", "service_name": "sonarr", "url": "http://x", "api_key": "test_key"},
         )
         assert ok.status_code == 200
-        assert ok.json()["data"]["ok"] is True
+        ok_data = ok.json()
+        assert ok_data is not None
+        assert "data" in ok_data
+        assert ok_data["data"]["ok"] is True
 
-        # Mock 异常
-        class MockClientFail(MockClientOK):
-            async def get(self, url, headers=None):
-                raise RuntimeError("boom")
-
-        monkeypatch.setattr(cfg.httpx, "AsyncClient", MockClientFail)
+        # Mock 失败情况
+        def make_client_fail(*args, **kwargs):
+            return MockClientFail()
+        
+        monkeypatch.setattr("app.services.clients.make_client", make_client_fail)
         fail = await ac.post(
             "/api/v1/config/test-connection",
             headers={"Authorization": f"Bearer {token}"},
-            json={"mode": "by_body", "service_name": "sonarr", "url": "http://x"},
+            json={"mode": "by_body", "service_name": "sonarr", "url": "http://x", "api_key": "test_key"},
         )
         assert fail.status_code == 200
         assert fail.json()["data"]["ok"] is False
