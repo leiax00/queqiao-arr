@@ -39,6 +39,7 @@ class KVConfigOut(BaseModel):
     id: int = Field(description="配置ID")
     key: str = Field(description="键")
     value: Optional[str] = Field(default=None, description="值（若加密则不返回明文）")
+    has_value: Optional[bool] = Field(default=None, description="当 is_encrypted=True 时，指示是否已设置值")
     is_encrypted: bool = Field(description="是否加密存储")
     is_active: bool = Field(description="是否启用")
     created_at: Optional[str] = Field(default=None, description="创建时间 ISO8601")
@@ -205,18 +206,36 @@ async def get_configurations(
                 updated_at=s.updated_at.isoformat() if getattr(s, "updated_at", None) else None,
             )
         )
-    kv_out = [
-        KVConfigOut(
-            id=c.id,
-            key=c.key,
-            value=c.value,
-            is_encrypted=c.is_encrypted,
-            is_active=c.is_active,
-            created_at=c.created_at.isoformat() if getattr(c, "created_at", None) else None,
-            updated_at=c.updated_at.isoformat() if getattr(c, "updated_at", None) else None,
-        )
-        for c in kvs
-    ]
+    kv_out = []
+    for c in kvs:
+        if c.is_encrypted:
+            # 加密项：不返回密文，改为返回 has_value 并令 value 为空
+            kv_out.append(
+                KVConfigOut(
+                    id=c.id,
+                    key=c.key,
+                    value=None,
+                    has_value=bool(c.value),
+                    is_encrypted=c.is_encrypted,
+                    is_active=c.is_active,
+                    created_at=c.created_at.isoformat() if getattr(c, "created_at", None) else None,
+                    updated_at=c.updated_at.isoformat() if getattr(c, "updated_at", None) else None,
+                )
+            )
+        else:
+            # 明文项：按原样返回 value，has_value 为空
+            kv_out.append(
+                KVConfigOut(
+                    id=c.id,
+                    key=c.key,
+                    value=c.value,
+                    has_value=None,
+                    is_encrypted=c.is_encrypted,
+                    is_active=c.is_active,
+                    created_at=c.created_at.isoformat() if getattr(c, "created_at", None) else None,
+                    updated_at=c.updated_at.isoformat() if getattr(c, "updated_at", None) else None,
+                )
+            )
 
     return success_response({"services": [x.model_dump() for x in services_out], "kv": [x.model_dump() for x in kv_out]})
 
