@@ -116,6 +116,7 @@ export interface KVConfigOut {
   id: number
   key: string
   value?: string | null
+  has_value?: boolean | null
   is_encrypted: boolean
   is_active: boolean
   created_at?: string | null
