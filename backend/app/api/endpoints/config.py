@@ -98,7 +98,7 @@ class TestConnectionByBody(BaseModel):
     api_key: Optional[str] = Field(default=None, description="API Key（可选）")
     username: Optional[str] = Field(default=None, description="用户名（可选）")
     password: Optional[str] = Field(default=None, description="密码（可选）")
-    use_proxy: Optional[bool] = Field(default=None, description="是否启用全局代理（仅在TMDB/支持时生效）")
+    proxy: Optional[Dict[str, str]] = Field(default=None, description="代理配置，如 {http, https}")
 
 
 class TestConnectionById(BaseModel):
@@ -474,7 +474,7 @@ async def test_service_connection(
         service_name = payload.service_name
         url = payload.url
         raw_api_key = payload.api_key
-        proxy = None
+        proxy = normalize_proxies(payload.proxy)
     else:
         svc = await crud_config.get_service_config_by_id(db, config_id=payload.id)
         if not svc:
