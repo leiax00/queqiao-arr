@@ -51,8 +51,8 @@ class KVConfigOut(BaseModel):
 
 class ServiceConfigCreate(BaseModel):
     type: Literal["service"] = Field(description="配置类型固定为 service", examples=["service"])
-    service_name: Literal["sonarr", "prowlarr", "proxy"] = Field(description="服务名", examples=["sonarr"])
-    service_type: Literal["api", "proxy"] = Field(description="服务类型", examples=["api"])
+    service_name: Literal["sonarr", "prowlarr", "proxy", "tmdb"] = Field(description="服务名", examples=["sonarr"])
+    service_type: Literal["api", "proxy", "metadata"] = Field(description="服务类型", examples=["api"])
     name: str = Field(min_length=1, max_length=100, description="配置名称", examples=["主Sonarr"])
     url: str = Field(min_length=1, max_length=255, description="服务URL", examples=["http://127.0.0.1:8989"])
     api_key: Optional[str] = Field(default=None, description="API Key（可选）")
@@ -72,8 +72,8 @@ class KVConfigCreate(BaseModel):
 
 
 class ServiceConfigUpdate(BaseModel):
-    service_name: Optional[Literal["sonarr", "prowlarr", "proxy"]] = Field(default=None, description="服务名")
-    service_type: Optional[Literal["api", "proxy"]] = Field(default=None, description="服务类型")
+    service_name: Optional[Literal["sonarr", "prowlarr", "proxy", "tmdb"]] = Field(default=None, description="服务名")
+    service_type: Optional[Literal["api", "proxy", "metadata"]] = Field(default=None, description="服务类型")
     name: Optional[str] = Field(default=None, min_length=1, max_length=100, description="配置名称")
     url: Optional[str] = Field(default=None, min_length=1, max_length=255, description="服务URL")
     api_key: Optional[str] = Field(default=None, description="API Key")
@@ -93,12 +93,12 @@ class KVConfigUpdate(BaseModel):
 
 class TestConnectionByBody(BaseModel):
     mode: Literal["by_body"] = Field(default="by_body", description="按请求体测试")
-    service_name: Literal["sonarr", "prowlarr"] = Field(description="服务名", examples=["sonarr"])
-    url: str = Field(description="服务URL", examples=["http://127.0.0.1:8989"])
+    service_name: Literal["sonarr", "prowlarr", "tmdb"] = Field(description="服务名", examples=["sonarr"])
+    url: Optional[str] = Field(default=None, description="服务URL，TMDB可省略", examples=["http://127.0.0.1:8989"])
     api_key: Optional[str] = Field(default=None, description="API Key（可选）")
     username: Optional[str] = Field(default=None, description="用户名（可选）")
     password: Optional[str] = Field(default=None, description="密码（可选）")
-    proxy: Optional[Dict[str, str]] = Field(default=None, description="代理配置，如 {http, https}")
+    use_proxy: Optional[bool] = Field(default=None, description="是否启用全局代理（仅在TMDB/支持时生效）")
 
 
 class TestConnectionById(BaseModel):
@@ -113,6 +113,40 @@ class ProxyTestRequest(BaseModel):
     url: Optional[str] = Field(default=None, description="测试目标URL，留空使用后端默认")
     proxy: Optional[Dict[str, str]] = Field(default=None, description="代理配置，如 {http, https}")
     timeout_ms: Optional[int] = Field(default=None, ge=1000, le=30000, description="超时时间（毫秒，1-30秒）")
+
+
+# ----------------------- TMDB 专用 Schema -----------------------
+
+class TmdbConfigOut(BaseModel):
+    service_name: str = Field(default="tmdb")
+    service_type: str = Field(default="metadata")
+    name: str = Field(default="默认TMDB")
+    url: str = Field(default="https://api.themoviedb.org/3")
+    api_key_masked: Optional[str] = None
+    extra_config: Dict[str, Any] = Field(default_factory=lambda: {
+        "use_proxy": False,
+        "language": "zh-CN",
+        "region": "CN",
+        "include_adult": False,
+    })
+    is_active: bool = True
+
+
+class TmdbConfigUpdate(BaseModel):
+    service_name: Optional[str] = Field(default="tmdb")
+    service_type: Optional[str] = Field(default="metadata")
+    name: Optional[str] = Field(default=None)
+    url: Optional[str] = Field(default=None)
+    api_key: Optional[str] = Field(default=None)
+    extra_config: Optional[Dict[str, Any]] = Field(default=None)
+    is_active: Optional[bool] = Field(default=None)
+
+
+class TmdbTestRequest(BaseModel):
+    api_key: Optional[str] = None
+    language: Optional[str] = Field(default="zh-CN")
+    region: Optional[str] = Field(default="CN")
+    use_proxy: Optional[bool] = Field(default=False)
 
 
 @router.get(
@@ -440,7 +474,7 @@ async def test_service_connection(
         service_name = payload.service_name
         url = payload.url
         raw_api_key = payload.api_key
-        proxy = normalize_proxies(payload.proxy)
+        proxy = None
     else:
         svc = await crud_config.get_service_config_by_id(db, config_id=payload.id)
         if not svc:
@@ -448,9 +482,20 @@ async def test_service_connection(
         service_name = svc.service_name
         url = svc.url
         raw_api_key = encryption_manager.decrypt(svc.api_key) if svc.api_key else None
+        # 解析 use_proxy 并注入全局代理（如存在）
+        if getattr(svc, "extra_config", None):
+            try:
+                import json
 
-    if service_name not in {"sonarr", "prowlarr"}:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="仅支持 sonarr/prowlarr 连通性测试")
+                extra = json.loads(svc.extra_config)
+                if isinstance(extra, dict) and extra.get("use_proxy"):
+                    # 读取全局代理自 KV（若有），此处暂置为 None，实际代理注入在客户端层可统一处理
+                    proxy = None
+            except Exception:
+                proxy = None
+
+    if service_name not in {"sonarr", "prowlarr", "tmdb"}:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="仅支持 sonarr/prowlarr/tmdb 连通性测试")
 
     # 使用客户端层进行连接测试
     try:
@@ -465,6 +510,190 @@ async def test_service_connection(
         return success_response({"ok": ok, "details": note})
     except ValueError as e:
         return error_response(message=str(e), code=400)
+
+
+# ----------------------- TMDB 专用端点 -----------------------
+
+def _mask(value: Optional[str]) -> Optional[str]:
+    if not value:
+        return None
+    length = len(value)
+    if length <= 8:
+        return "*" * length
+    return f"{value[:4]}{'*' * (length - 8)}{value[-4:]}"
+
+
+async def _get_global_proxies(db: AsyncSession) -> Optional[Dict[str, str]]:
+    """从 KV 读取全局代理配置，返回 httpx 可识别的 proxies 映射。
+    期望的 KV key：http_proxy, https_proxy
+    值格式：完整URL，如 http://127.0.0.1:7890
+    """
+    try:
+        items = await crud_config.get_configurations(db, keys=["http_proxy", "https_proxy"], is_active=True)
+        proxies: Dict[str, str] = {}
+        for it in items:
+            if not getattr(it, "value", None):
+                continue
+            val = it.value
+            if getattr(it, "is_encrypted", False):
+                try:
+                    val = encryption_manager.decrypt(val)
+                except Exception:
+                    continue
+            key = it.key.strip().lower()
+            if key == "http_proxy":
+                proxies["http://"] = val
+            elif key == "https_proxy":
+                proxies["https://"] = val
+        return proxies or None
+    except Exception:
+        return None
+
+
+@router.get(
+    "/tmdb",
+    summary="读取 TMDB 配置（ServiceConfig 风格）",
+)
+async def get_tmdb_config(
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    items = await crud_config.get_service_configs(db, service_name="tmdb")
+    if not items:
+        # 返回默认占位
+        return success_response(TmdbConfigOut().model_dump())
+    svc = items[0]
+    api_key_plain = encryption_manager.decrypt(svc.api_key) if svc.api_key else None
+    import json
+
+    extra = None
+    if getattr(svc, "extra_config", None):
+        try:
+            extra = json.loads(svc.extra_config)
+        except Exception:
+            extra = None
+    out = TmdbConfigOut(
+        service_name=svc.service_name,
+        service_type=svc.service_type,
+        name=svc.name,
+        url=svc.url,
+        api_key_masked=_mask(api_key_plain),
+        extra_config=extra or TmdbConfigOut.model_fields["extra_config"].default_factory(),
+        is_active=svc.is_active,
+    )
+    return success_response(out.model_dump())
+
+
+@router.put(
+    "/tmdb",
+    summary="更新 TMDB 配置（ServiceConfig 风格）",
+)
+async def update_tmdb_config(
+    payload: TmdbConfigUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    items = await crud_config.get_service_configs(db, service_name="tmdb")
+    import json
+    extra_json = None
+    if payload.extra_config is not None:
+        extra_json = json.dumps(payload.extra_config, ensure_ascii=False)
+
+    if not items:
+        item = await crud_config.create_service_config(
+            db,
+            service_name="tmdb",
+            service_type="metadata",
+            name=payload.name or "默认TMDB",
+            url=payload.url or "https://api.themoviedb.org/3",
+            api_key=encryption_manager.encrypt(payload.api_key) if payload.api_key else None,
+            username=None,
+            password=None,
+            extra_config=extra_json,
+            is_active=True if payload.is_active is None else payload.is_active,
+        )
+        return success_response({"id": item.id})
+
+    svc = items[0]
+    data: Dict[str, Any] = {}
+    if payload.service_type is not None:
+        data["service_type"] = payload.service_type
+    if payload.name is not None:
+        data["name"] = payload.name
+    if payload.url is not None:
+        data["url"] = payload.url
+    if payload.api_key is not None:
+        data["api_key"] = encryption_manager.encrypt(payload.api_key) if payload.api_key else None
+    if payload.extra_config is not None:
+        data["extra_config"] = extra_json
+    if payload.is_active is not None:
+        data["is_active"] = payload.is_active
+    svc = await crud_config.update_service_config(db, obj=svc, data=data)
+    return success_response({"id": svc.id})
+
+
+@router.post(
+    "/tmdb/test",
+    summary="测试 TMDB 连接",
+)
+async def test_tmdb_connection(
+    payload: TmdbTestRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    from app.services.clients import make_client
+    import time
+
+    # 读取配置
+    items = await crud_config.get_service_configs(db, service_name="tmdb")
+    api_key = payload.api_key
+    use_proxy = payload.use_proxy
+    if not api_key and items:
+        api_key = encryption_manager.decrypt(items[0].api_key) if items[0].api_key else None
+        if use_proxy is None:
+            try:
+                import json
+                extra = json.loads(items[0].extra_config) if items[0].extra_config else {}
+                use_proxy = bool(extra.get("use_proxy"))
+            except Exception:
+                use_proxy = False
+
+    if not api_key:
+        return error_response(message="缺少 TMDB api_key", code=400)
+
+    # 解析全局代理（若 use_proxy=true）
+    proxies = None
+    if use_proxy:
+        proxies = await _get_global_proxies(db)
+
+    start = time.perf_counter()
+    client = make_client(service_name="tmdb", api_key=api_key, proxies=proxies, timeout=5)
+    ok, note = client.check_status()
+    latency_ms = int((time.perf_counter() - start) * 1000)
+    return success_response({"ok": ok, "latency_ms": latency_ms, "diagnosis": "ok" if ok else note, "endpoint": "/configuration"})
+
+
+@router.get(
+    "/tmdb/options",
+    summary="TMDB 选项（语言/地区）",
+)
+async def get_tmdb_options(
+    current_user=Depends(get_current_user),
+):
+    data = {
+        "languages": [
+            {"code": "zh-CN", "label": "中文（简体）"},
+            {"code": "zh-TW", "label": "中文（繁體）"},
+            {"code": "en-US", "label": "English (US)"},
+        ],
+        "regions": [
+            {"code": "CN", "label": "中国大陆"},
+            {"code": "HK", "label": "中国香港"},
+            {"code": "TW", "label": "中国台湾"},
+            {"code": "US", "label": "United States"},
+        ],
+    }
+    return success_response(data)
 
 
 @router.post(
