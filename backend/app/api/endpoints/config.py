@@ -459,17 +459,17 @@ async def delete_configuration(
 @router.post(
     "/test-connection",
     summary="测试服务连通性",
-    description="测试 Sonarr/Prowlarr 的连通性，支持按请求体或按配置ID测试。",
+    description="测试 Sonarr/Prowlarr/TMDB 的连通性，支持按请求体（by_body）或按配置ID（by_id）测试。",
     responses={
         200: {
             "description": "测试结果",
             "content": {
                 "application/json": {
-                    "example": {"code": 200, "message": "OK", "data": {"ok": True, "details": "HTTP 200"}}
+                    "example": {"code": 200, "message": "OK", "data": {"ok": True, "details": "HTTP 200", "latency_ms": 123}}
                 }
             }
         },
-        400: {"description": "参数错误", "content": {"application/json": {"example": {"detail": "仅支持 sonarr/prowlarr 连通性测试"}}}},
+        400: {"description": "参数错误", "content": {"application/json": {"example": {"detail": "仅支持 sonarr/prowlarr/tmdb 连通性测试"}}}},
         404: {"description": "配置不存在", "content": {"application/json": {"example": {"detail": "配置不存在"}}}},
     },
 )
@@ -549,6 +549,28 @@ def _mask(value: Optional[str]) -> Optional[str]:
 @router.get(
     "/tmdb",
     summary="读取 TMDB 配置（ServiceConfig 风格）",
+    responses={
+        200: {
+            "description": "成功",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "code": 200,
+                        "message": "OK",
+                        "data": {
+                            "service_name": "tmdb",
+                            "service_type": "metadata",
+                            "name": "默认TMDB",
+                            "url": "https://api.themoviedb.org/3",
+                            "api_key_masked": "ABCD****WXYZ",
+                            "extra_config": {"use_proxy": False, "language": "zh-CN", "region": "CN", "include_adult": False},
+                            "is_active": True
+                        }
+                    }
+                }
+            }
+        }
+    },
 )
 async def get_tmdb_config(
     db: AsyncSession = Depends(get_db),
@@ -583,6 +605,16 @@ async def get_tmdb_config(
 @router.put(
     "/tmdb",
     summary="更新 TMDB 配置（ServiceConfig 风格）",
+    responses={
+        200: {
+            "description": "更新成功",
+            "content": {"application/json": {"example": {"code": 200, "message": "OK", "data": {"id": 1}}}},
+        },
+        409: {
+            "description": "冲突（可选）",
+            "content": {"application/json": {"example": {"detail": "同名配置已存在"}}},
+        },
+    },
 )
 async def update_tmdb_config(
     payload: TmdbConfigUpdate,
@@ -634,6 +666,32 @@ async def update_tmdb_config(
 @router.get(
     "/tmdb/options",
     summary="TMDB 选项（语言/地区）",
+    responses={
+        200: {
+            "description": "成功",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "code": 200,
+                        "message": "OK",
+                        "data": {
+                            "languages": [
+                                {"code": "zh-CN", "label": "中文（简体）"},
+                                {"code": "zh-TW", "label": "中文（繁體）"},
+                                {"code": "en-US", "label": "English (US)"}
+                            ],
+                            "regions": [
+                                {"code": "CN", "label": "中国大陆"},
+                                {"code": "HK", "label": "中国香港"},
+                                {"code": "TW", "label": "中国台湾"},
+                                {"code": "US", "label": "United States"}
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+    },
 )
 async def get_tmdb_options(
     current_user=Depends(get_current_user),
