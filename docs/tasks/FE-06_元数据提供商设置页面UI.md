@@ -47,7 +47,7 @@
 
 - 读取：`GET /api/config/tmdb`
 - 更新：`PUT /api/config/tmdb`
-- 测试：`POST /api/config/tmdb/test`
+- 测试：`POST /api/config/test-connection`（by_body：`service_name=tmdb`，支持 `proxy`；by_id：若 `use_proxy=true` 则后端自动注入 `proxy` 服务）
 - 选项：`GET /api/config/tmdb/options`（语言/地区）
 
 交互约定：

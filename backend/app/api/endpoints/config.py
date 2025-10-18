@@ -142,11 +142,36 @@ class TmdbConfigUpdate(BaseModel):
     is_active: Optional[bool] = Field(default=None)
 
 
-class TmdbTestRequest(BaseModel):
-    api_key: Optional[str] = None
-    language: Optional[str] = Field(default="zh-CN")
-    region: Optional[str] = Field(default="CN")
-    use_proxy: Optional[bool] = Field(default=False)
+async def _get_active_proxy_proxies(db: AsyncSession) -> Optional[Dict[str, str]]:
+    """读取启用中的 proxy 类型 ServiceConfig，构造 httpx proxies。
+    优先使用 extra_config.http / extra_config.https；
+    若缺失且 url 为完整代理URL，则回填到 http/https 两个协议。
+    若存在 socks5 字段，可同时回填 http/https。
+    """
+    try:
+        items = await crud_config.get_service_configs(db, service_name="proxy", is_active=True)
+        if not items:
+            return None
+        svc = items[0]
+        proxies: Dict[str, str] = {}
+        import json
+        extra = {}
+        if getattr(svc, "extra_config", None):
+            try:
+                extra = json.loads(svc.extra_config) or {}
+            except Exception:
+                extra = {}
+        if extra.get("http"):
+            proxies["http://"] = extra["http"]
+        if extra.get("https"):
+            proxies["https://"] = extra["https"]
+        if not proxies and extra.get("socks5"):
+            proxies = {"http://": extra["socks5"], "https://": extra["socks5"]}
+        if not proxies and getattr(svc, "url", None) and "://" in svc.url:
+            proxies = {"http://": svc.url, "https://": svc.url}
+        return proxies or None
+    except Exception:
+        return None
 
 
 @router.get(
@@ -482,15 +507,13 @@ async def test_service_connection(
         service_name = svc.service_name
         url = svc.url
         raw_api_key = encryption_manager.decrypt(svc.api_key) if svc.api_key else None
-        # 解析 use_proxy 并注入全局代理（如存在）
+        # 解析 use_proxy 并注入“proxy 类型服务”作为代理
         if getattr(svc, "extra_config", None):
             try:
                 import json
-
-                extra = json.loads(svc.extra_config)
+                extra = json.loads(svc.extra_config) or {}
                 if isinstance(extra, dict) and extra.get("use_proxy"):
-                    # 读取全局代理自 KV（若有），此处暂置为 None，实际代理注入在客户端层可统一处理
-                    proxy = None
+                    proxy = await _get_active_proxy_proxies(db)
             except Exception:
                 proxy = None
 
@@ -521,33 +544,6 @@ def _mask(value: Optional[str]) -> Optional[str]:
     if length <= 8:
         return "*" * length
     return f"{value[:4]}{'*' * (length - 8)}{value[-4:]}"
-
-
-async def _get_global_proxies(db: AsyncSession) -> Optional[Dict[str, str]]:
-    """从 KV 读取全局代理配置，返回 httpx 可识别的 proxies 映射。
-    期望的 KV key：http_proxy, https_proxy
-    值格式：完整URL，如 http://127.0.0.1:7890
-    """
-    try:
-        items = await crud_config.get_configurations(db, keys=["http_proxy", "https_proxy"], is_active=True)
-        proxies: Dict[str, str] = {}
-        for it in items:
-            if not getattr(it, "value", None):
-                continue
-            val = it.value
-            if getattr(it, "is_encrypted", False):
-                try:
-                    val = encryption_manager.decrypt(val)
-                except Exception:
-                    continue
-            key = it.key.strip().lower()
-            if key == "http_proxy":
-                proxies["http://"] = val
-            elif key == "https_proxy":
-                proxies["https://"] = val
-        return proxies or None
-    except Exception:
-        return None
 
 
 @router.get(
@@ -632,45 +628,7 @@ async def update_tmdb_config(
     return success_response({"id": svc.id})
 
 
-@router.post(
-    "/tmdb/test",
-    summary="测试 TMDB 连接",
-)
-async def test_tmdb_connection(
-    payload: TmdbTestRequest,
-    db: AsyncSession = Depends(get_db),
-    current_user=Depends(get_current_user),
-):
-    from app.services.clients import make_client
-    import time
-
-    # 读取配置
-    items = await crud_config.get_service_configs(db, service_name="tmdb")
-    api_key = payload.api_key
-    use_proxy = payload.use_proxy
-    if not api_key and items:
-        api_key = encryption_manager.decrypt(items[0].api_key) if items[0].api_key else None
-        if use_proxy is None:
-            try:
-                import json
-                extra = json.loads(items[0].extra_config) if items[0].extra_config else {}
-                use_proxy = bool(extra.get("use_proxy"))
-            except Exception:
-                use_proxy = False
-
-    if not api_key:
-        return error_response(message="缺少 TMDB api_key", code=400)
-
-    # 解析全局代理（若 use_proxy=true）
-    proxies = None
-    if use_proxy:
-        proxies = await _get_global_proxies(db)
-
-    start = time.perf_counter()
-    client = make_client(service_name="tmdb", api_key=api_key, proxies=proxies, timeout=5)
-    ok, note = client.check_status()
-    latency_ms = int((time.perf_counter() - start) * 1000)
-    return success_response({"ok": ok, "latency_ms": latency_ms, "diagnosis": "ok" if ok else note, "endpoint": "/configuration"})
+# 移除独立 TMDB 测试端点，统一到 /api/config/test-connection
 
 
 @router.get(

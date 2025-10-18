@@ -110,40 +110,16 @@
   - `region` 需在支持列表内；
   - `extra_config.use_proxy` 为布尔值。
 
-### 4.3 连接测试
+### 4.3 连接测试（统一接口）
 
-- Method: `POST /api/config/tmdb/test`
-- Request（可选体，若为空则使用已存配置；遵循 `use_proxy` 开关）：
-
-```json
-{
-  "api_key": "<optional_override>",
-  "language": "zh-CN",
-  "region": "CN",
-  "use_proxy": false
-}
-```
-
-- Response 200（示例）：
+- Method: `POST /api/config/test-connection`
+- 两种模式：
+  - by_body：传 `service_name=tmdb`、`api_key`（可选覆盖）、`proxy`（与 Sonarr/Prowlarr 一致的 `{http, https}`）。未传则直连。
+  - by_id：传已保存配置的 `id`，若 `extra_config.use_proxy=true`，后端将自动读取启用中的 `service_name=proxy` 服务，构造 httpx `proxies` 注入测试。
+- 成功示例：
 
 ```json
-{
-  "ok": true,
-  "latency_ms": 132,
-  "diagnosis": "ok",
-  "endpoint": "/configuration"
-}
-```
-
-- 失败示例：
-
-```json
-{
-  "ok": false,
-  "latency_ms": 10050,
-  "diagnosis": "timeout",
-  "endpoint": "/configuration"
-}
+{ "ok": true, "latency_ms": 132, "diagnosis": "ok", "endpoint": "/configuration" }
 ```
 
 ### 4.4 选项列表（语言/地区）
