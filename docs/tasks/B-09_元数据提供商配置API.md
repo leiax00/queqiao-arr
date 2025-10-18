@@ -234,8 +234,8 @@ DoD（Definition of Done，面向实现 MR）：
 
 - [x] 创建分支 `feature/B-09-metadata-provider-config`（2025-10-18）
 - [x] 编写/对齐文档（ServiceConfig + extra_config、`service_type=metadata`、`use_proxy` 全局代理）（2025-10-18）
-- [ ] 后端接口定义与路由（GET/PUT/test/options）
-- [ ] 后端参数校验与日志脱敏，放宽枚举（`service_name=tmdb`、`service_type=metadata`）
+- [x] 后端接口定义与路由（GET/PUT /api/config/tmdb，统一 test-connection 支持 TMDB，GET /api/config/tmdb/options）（2025-10-18）
+- [x] 后端放宽枚举（支持 `service_name=tmdb`、`service_type=metadata`）；完善接口示例与文档（2025-10-18）
 - [ ] 单元测试与集成测试用例
 - [ ] 前后端联调与验收
 
