@@ -5,6 +5,9 @@ import type {
   ServiceConfigUpdate,
   TestConnectionRequest,
   TestConnectionResponse,
+  TmdbConfigOut,
+  TmdbConfigUpdate,
+  TmdbOptions,
 } from './types'
 
 export const configAPI = {
@@ -57,6 +60,29 @@ export const configAPI = {
       url: '/config/test-proxy',
       method: 'post',
       data: body,
+    })
+  },
+
+  // TMDB 元数据提供商配置
+  getTmdbConfig: (): Promise<TmdbConfigOut> => {
+    return request({
+      url: '/config/tmdb',
+      method: 'get',
+    })
+  },
+
+  updateTmdbConfig: (payload: TmdbConfigUpdate): Promise<TmdbConfigOut> => {
+    return request({
+      url: '/config/tmdb',
+      method: 'put',
+      data: payload,
+    })
+  },
+
+  getTmdbOptions: (): Promise<TmdbOptions> => {
+    return request({
+      url: '/config/tmdb/options',
+      method: 'get',
     })
   },
 }

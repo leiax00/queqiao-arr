@@ -73,6 +73,54 @@
         </ConfigFormCard>
       </div>
 
+      <!-- TMDB 元数据提供商配置 - 与上方服务配置对齐 -->
+      <div class="services-grid">
+        <ConfigFormCard title="🎬 TMDB 元数据配置" subtitle="配置 The Movie Database API 用于获取影视元数据">
+          <el-form ref="tmdbFormRef" :model="tmdb" :rules="tmdbRules" label-width="120px" class="tmdb-form">
+            <el-form-item label="API 地址" prop="apiUrl">
+              <el-input v-model="tmdb.apiUrl" placeholder="https://api.themoviedb.org" disabled />
+            </el-form-item>
+            <el-form-item label="API 密钥" prop="apiKey">
+              <SecretInput v-model="tmdb.apiKey" placeholder="请输入 TMDB API Key" :hint="tmdbHint" />
+            </el-form-item>
+            <div class="form-row">
+              <el-form-item label="语言" prop="language" class="form-row-item">
+                <el-select v-model="tmdb.language" placeholder="请选择语言" filterable :loading="tmdbOptionsLoading">
+                  <el-option v-for="lang in tmdbLanguages" :key="lang.code" :label="lang.name" :value="lang.code" />
+                </el-select>
+              </el-form-item>
+              <el-form-item label="地区" prop="region" class="form-row-item">
+                <el-select v-model="tmdb.region" placeholder="请选择地区" filterable :loading="tmdbOptionsLoading">
+                  <el-option v-for="reg in tmdbRegions" :key="reg.code" :label="reg.name" :value="reg.code" />
+                </el-select>
+              </el-form-item>
+            </div>
+            <div class="form-row">
+              <el-form-item label="包含成人内容" class="form-row-item">
+                <el-switch v-model="tmdb.includeAdult" />
+              </el-form-item>
+              <el-form-item label="启用代理" class="form-row-item">
+                <el-switch v-model="tmdb.useProxy" />
+              </el-form-item>
+            </div>
+          </el-form>
+          <template #footer>
+            <el-button @click="resetTmdb">重置</el-button>
+            <el-button 
+              type="info" 
+              :loading="tmdbTesting" 
+              :disabled="!isTmdbValid" 
+              @click="testTmdb"
+            >
+              <el-icon v-if="tmdbTestStatus === 'success'" class="test-status-icon success"><CircleCheck /></el-icon>
+              <el-icon v-else-if="tmdbTestStatus === 'error'" class="test-status-icon error"><CircleClose /></el-icon>
+              测试连接
+            </el-button>
+            <el-button type="primary" :loading="tmdbSaving" :disabled="!tmdbChanged || !isTmdbValid" @click="saveTmdb">保存</el-button>
+          </template>
+        </ConfigFormCard>
+      </div>
+
       <!-- 代理配置 - 单行 -->
       <ConfigFormCard class="proxy-card" title="🌐 网络代理配置" subtitle="配置全局代理服务器，服务配置可选择是否使用">
         <el-form ref="proxyFormRef" :model="proxy" :rules="proxyRules" label-width="100px" class="proxy-form">
@@ -122,7 +170,7 @@ import { InfoFilled, CircleCheck, CircleClose, Refresh } from '@element-plus/ico
 import ConfigFormCard from '@/components/common/ConfigFormCard.vue'
 import SecretInput from '@/components/form/SecretInput.vue'
 import { configAPI } from '@/api/config'
-import type { OverviewResponse, TestConnectionRequest } from '@/api/types'
+import type { OverviewResponse, TestConnectionRequest, TmdbConfigOut, TmdbOptions } from '@/api/types'
 
 // 代理配置
 const proxyFormRef = ref<FormInstance>()
@@ -180,6 +228,64 @@ const prowlarrHint = ref<string>('已保存的密钥不会回显明文')
 const prowlarrSaving = ref(false)
 const prowlarrTesting = ref(false)
 const prowlarrTestStatus = ref<'success' | 'error' | null>(null)
+
+// TMDB 元数据提供商配置
+interface TmdbConfig {
+  apiUrl: string
+  apiKey: string
+  language: string
+  region: string
+  includeAdult: boolean
+  useProxy: boolean
+}
+
+const tmdbFormRef = ref<FormInstance>()
+const tmdb = reactive<TmdbConfig>({
+  apiUrl: 'https://api.themoviedb.org',
+  apiKey: '',
+  language: 'zh-CN',
+  region: 'CN',
+  includeAdult: false,
+  useProxy: false,
+})
+const tmdbInitial = reactive<TmdbConfig>({ ...tmdb })
+const tmdbHint = ref<string>('已保存的密钥不会回显明文')
+const tmdbSaving = ref(false)
+const tmdbTesting = ref(false)
+const tmdbTestStatus = ref<'success' | 'error' | null>(null)
+const tmdbId = ref<number | null>(null)
+
+// TMDB 选项
+const tmdbLanguages = ref<Array<{ code: string; name: string }>>([])
+const tmdbRegions = ref<Array<{ code: string; name: string }>>([])
+const tmdbOptionsLoading = ref(false)
+
+// TMDB 校验规则
+const tmdbRules = reactive<FormRules<TmdbConfig>>({
+  apiKey: [
+    {
+      validator: (_rule, value: string, callback) => {
+        if (tmdbId.value !== null && (!value || value.length === 0)) return callback()
+        if (!value || value.length < 8) return callback(new Error('API 密钥长度至少 8 字符'))
+        return callback()
+      },
+      trigger: 'blur',
+    },
+  ],
+  language: [
+    { required: true, message: '请选择语言', trigger: 'change' },
+  ],
+  region: [
+    { required: true, message: '请选择地区', trigger: 'change' },
+  ],
+})
+
+const isTmdbValid = computed(() => 
+  !!tmdb.language && 
+  !!tmdb.region && 
+  (tmdb.apiKey.length >= 8 || tmdbId.value !== null)
+)
+const tmdbChanged = computed(() => JSON.stringify(tmdb) !== JSON.stringify(tmdbInitial))
 
 // 服务校验规则
 const serviceRules = reactive<FormRules<ServiceConfig>>({
@@ -268,6 +374,8 @@ const loadOverview = async () => {
 
 onMounted(() => {
   loadOverview()
+  loadTmdbOptions()
+  loadTmdbConfig()
 })
 
 // 刷新配置
@@ -275,7 +383,10 @@ const refreshing = ref(false)
 const refreshConfigs = async () => {
   try {
     refreshing.value = true
-    await loadOverview()
+    await Promise.all([
+      loadOverview(),
+      loadTmdbConfig(),
+    ])
     ElMessage.success('配置已刷新')
   } finally {
     refreshing.value = false
@@ -501,6 +612,128 @@ const resetProwlarr = () => {
   Object.assign(prowlarr, prowlarrInitial)
   prowlarrFormRef.value?.clearValidate()
 }
+
+// TMDB 操作
+const loadTmdbOptions = async () => {
+  try {
+    tmdbOptionsLoading.value = true
+    const options: TmdbOptions = await configAPI.getTmdbOptions()
+    tmdbLanguages.value = options.languages
+    tmdbRegions.value = options.regions
+  } catch (e) {
+    ElMessage.error('加载 TMDB 选项失败')
+  } finally {
+    tmdbOptionsLoading.value = false
+  }
+}
+
+const loadTmdbConfig = async () => {
+  try {
+    const data: TmdbConfigOut = await configAPI.getTmdbConfig()
+    if (data.id) {
+      tmdbId.value = data.id
+      tmdb.apiKey = ''  // 不回显密钥
+      tmdb.language = data.language || 'zh-CN'
+      tmdb.region = data.region || 'CN'
+      tmdb.includeAdult = data.include_adult || false
+      tmdb.useProxy = data.use_proxy || false
+      
+      if (data.api_key_masked) {
+        tmdbHint.value = `已保存：${data.api_key_masked}`
+      } else {
+        tmdbHint.value = '已保存的密钥不会回显明文'
+      }
+      
+      Object.assign(tmdbInitial, tmdb)
+    }
+  } catch (e) {
+    // 如果未配置，不显示错误（404 是正常的）
+    console.log('TMDB 配置未找到，使用默认值')
+  }
+}
+
+const saveTmdb = async () => {
+  try {
+    await tmdbFormRef.value?.validate()
+    tmdbSaving.value = true
+    
+    const payload: any = {
+      language: tmdb.language,
+      region: tmdb.region,
+      include_adult: tmdb.includeAdult,
+      use_proxy: tmdb.useProxy,
+    }
+    
+    // 只有在用户修改了 API Key 时才提交
+    if (tmdb.apiKey) {
+      payload.api_key = tmdb.apiKey
+    }
+    
+    const res = await configAPI.updateTmdbConfig(payload)
+    if (res.id) {
+      tmdbId.value = res.id
+    }
+    
+    // 保存成功后更新初始值和提示
+    Object.assign(tmdbInitial, tmdb)
+    if (res.api_key_masked) {
+      tmdbHint.value = `已保存：${res.api_key_masked}`
+    }
+    
+    ElMessage.success('TMDB 配置保存成功')
+  } catch (e: any) {
+    ElMessage.error(e.message || 'TMDB 配置保存失败')
+  } finally {
+    tmdbSaving.value = false
+  }
+}
+
+const testTmdb = async () => {
+  try {
+    await tmdbFormRef.value?.validate()
+    tmdbTesting.value = true
+    tmdbTestStatus.value = null
+    
+    // 构造测试请求体
+    const body: any = {
+      mode: 'by_body',
+      service_name: 'tmdb',
+      url: tmdb.apiUrl,  // 使用表单中的 API 地址
+      api_key: tmdb.apiKey || undefined,
+    }
+    
+    // 如果启用代理且代理地址存在，添加代理配置
+    if (tmdb.useProxy && proxy.address) {
+      body.proxy = { http: proxy.address, https: proxy.address }
+    }
+    
+    const res = await configAPI.testConnection(body)
+    if (res.ok) {
+      tmdbTestStatus.value = 'success'
+      const latency = (res as any).latency_ms ? `延迟 ${(res as any).latency_ms}ms` : ''
+      ElMessage.success({ 
+        message: `TMDB 连接成功！${res.details} ${latency}`, 
+        duration: 3000 
+      })
+    } else {
+      tmdbTestStatus.value = 'error'
+      ElMessage.error({ 
+        message: `TMDB 连接失败：${res.details}`, 
+        duration: 4000 
+      })
+    }
+  } catch (e: any) {
+    tmdbTestStatus.value = 'error'
+    ElMessage.error(e.message || '请先完善 TMDB 配置')
+  } finally {
+    tmdbTesting.value = false
+  }
+}
+
+const resetTmdb = () => {
+  Object.assign(tmdb, tmdbInitial)
+  tmdbFormRef.value?.clearValidate()
+}
 </script>
 
 <style lang="scss" scoped>
@@ -593,6 +826,22 @@ const resetProwlarr = () => {
 
     @media (min-width: 1024px) {
       grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  .tmdb-form {
+    .form-row {
+      display: grid;
+      grid-template-columns: repeat(1, minmax(0, 1fr));
+      gap: 0 20px;
+
+      @media (min-width: 768px) {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .form-row-item {
+        margin-bottom: 18px;
+      }
     }
   }
 }

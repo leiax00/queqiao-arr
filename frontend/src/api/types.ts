@@ -175,6 +175,31 @@ export interface TestConnectionResponse {
   details: string
 }
 
+// TMDB 元数据提供商配置类型
+export interface TmdbConfigOut {
+  id?: number
+  api_key_masked?: string | null
+  language: string
+  region: string
+  include_adult: boolean
+  use_proxy: boolean
+  created_at?: string | null
+  updated_at?: string | null
+}
+
+export interface TmdbConfigUpdate {
+  api_key?: string | null
+  language?: string
+  region?: string
+  include_adult?: boolean
+  use_proxy?: boolean
+}
+
+export interface TmdbOptions {
+  languages: Array<{ code: string; name: string }>
+  regions: Array<{ code: string; name: string }>
+}
+
 // 系统相关类型
 export interface HealthCheck {
   status: 'healthy' | 'unhealthy'
