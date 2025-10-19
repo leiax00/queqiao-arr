@@ -170,7 +170,7 @@ import { InfoFilled, CircleCheck, CircleClose, Refresh } from '@element-plus/ico
 import ConfigFormCard from '@/components/common/ConfigFormCard.vue'
 import SecretInput from '@/components/form/SecretInput.vue'
 import { configAPI } from '@/api/config'
-import type { OverviewResponse, TestConnectionRequest, TmdbConfigOut, TmdbOptions } from '@/api/types'
+import type { OverviewResponse, TestConnectionRequest, TmdbOptions } from '@/api/types'
 
 // 代理配置
 const proxyFormRef = ref<FormInstance>()
@@ -629,8 +629,8 @@ const loadTmdbOptions = async () => {
 
 const loadTmdbConfig = async () => {
   try {
-    const data: TmdbConfigOut = await configAPI.getTmdbConfig()
-    if (data.id) {
+    const data = await configAPI.getTmdbConfig()
+    if (data && data.id) {
       tmdbId.value = data.id
       tmdb.apiKey = ''  // 不回显密钥
       tmdb.language = data.language || 'zh-CN'
@@ -647,7 +647,7 @@ const loadTmdbConfig = async () => {
       Object.assign(tmdbInitial, tmdb)
     }
   } catch (e) {
-    // 如果未配置，不显示错误（404 是正常的）
+    // 如果未配置，不显示错误（null 是正常的）
     console.log('TMDB 配置未找到，使用默认值')
   }
 }
@@ -669,16 +669,18 @@ const saveTmdb = async () => {
       payload.api_key = tmdb.apiKey
     }
     
-    const res = await configAPI.updateTmdbConfig(payload)
-    if (res.id) {
+    let res: { id: number }
+    if (tmdbId.value === null) {
+      // 创建新配置
+      res = await configAPI.createTmdbConfig(payload)
       tmdbId.value = res.id
+    } else {
+      // 更新已有配置
+      res = await configAPI.updateTmdbConfig(tmdbId.value, payload)
     }
     
-    // 保存成功后更新初始值和提示
-    Object.assign(tmdbInitial, tmdb)
-    if (res.api_key_masked) {
-      tmdbHint.value = `已保存：${res.api_key_masked}`
-    }
+    // 保存成功后重新加载配置以获取最新的掩码
+    await loadTmdbConfig()
     
     ElMessage.success('TMDB 配置保存成功')
   } catch (e: any) {

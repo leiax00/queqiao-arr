@@ -63,19 +63,65 @@ export const configAPI = {
     })
   },
 
-  // TMDB 元数据提供商配置
-  getTmdbConfig: (): Promise<TmdbConfigOut> => {
-    return request({
-      url: '/config/tmdb',
+  // TMDB 元数据提供商配置（使用通用接口）
+  getTmdbConfig: async (): Promise<TmdbConfigOut | null> => {
+    const overview: OverviewResponse = await request({
+      url: '/config/',
       method: 'get',
+      params: { service_name: 'tmdb' },
+    })
+    const tmdbService = overview.services.find(s => s.service_name === 'tmdb')
+    if (!tmdbService) {
+      return null
+    }
+    // 转换为 TmdbConfigOut 格式
+    return {
+      id: tmdbService.id,
+      language: tmdbService.extra_config?.language || 'zh-CN',
+      region: tmdbService.extra_config?.region || 'CN',
+      include_adult: tmdbService.extra_config?.include_adult || false,
+      use_proxy: tmdbService.extra_config?.use_proxy || false,
+      api_key_masked: tmdbService.api_key_masked,
+      created_at: tmdbService.created_at,
+      updated_at: tmdbService.updated_at,
+    }
+  },
+
+  createTmdbConfig: (payload: TmdbConfigUpdate): Promise<{ id: number }> => {
+    return request({
+      url: '/config/',
+      method: 'post',
+      data: {
+        type: 'service',
+        service_name: 'tmdb',
+        service_type: 'metadata',
+        name: '默认TMDB',
+        url: 'https://api.themoviedb.org/3',
+        api_key: payload.api_key,
+        extra_config: {
+          language: payload.language,
+          region: payload.region,
+          include_adult: payload.include_adult,
+          use_proxy: payload.use_proxy,
+        },
+        is_active: true,
+      } as ServiceConfigCreate,
     })
   },
 
-  updateTmdbConfig: (payload: TmdbConfigUpdate): Promise<TmdbConfigOut> => {
+  updateTmdbConfig: (id: number, payload: TmdbConfigUpdate): Promise<{ id: number }> => {
     return request({
-      url: '/config/tmdb',
+      url: `/config/${id}`,
       method: 'put',
-      data: payload,
+      data: {
+        api_key: payload.api_key,
+        extra_config: {
+          language: payload.language,
+          region: payload.region,
+          include_adult: payload.include_adult,
+          use_proxy: payload.use_proxy,
+        },
+      } as ServiceConfigUpdate,
     })
   },
 
