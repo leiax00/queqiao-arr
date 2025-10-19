@@ -696,17 +696,27 @@ const testTmdb = async () => {
     tmdbTesting.value = true
     tmdbTestStatus.value = null
     
-    // 构造测试请求体
-    const body: any = {
-      mode: 'by_body',
-      service_name: 'tmdb',
-      url: tmdb.apiUrl,  // 使用表单中的 API 地址
-      api_key: tmdb.apiKey || undefined,
-    }
+    let body: TestConnectionRequest
     
-    // 如果启用代理且代理地址存在，添加代理配置
-    if (tmdb.useProxy && proxy.address) {
-      body.proxy = { http: proxy.address, https: proxy.address }
+    // 如果已有配置且用户未输入新密钥，使用 by_id 模式（后端会自动从数据库读取密钥）
+    if (tmdbId.value !== null && !tmdb.apiKey) {
+      body = { 
+        mode: 'by_id', 
+        id: tmdbId.value 
+      }
+    } else {
+      // 否则使用 by_body 模式（新配置或用户重新输入了密钥）
+      body = {
+        mode: 'by_body',
+        service_name: 'tmdb',
+        url: tmdb.apiUrl,
+        api_key: tmdb.apiKey || undefined,
+      }
+      
+      // 如果启用代理且代理地址存在，添加代理配置
+      if (tmdb.useProxy && proxy.address) {
+        ;(body as any).proxy = { http: proxy.address, https: proxy.address }
+      }
     }
     
     const res = await configAPI.testConnection(body)
