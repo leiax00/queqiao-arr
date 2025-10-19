@@ -86,12 +86,12 @@
             <div class="form-row">
               <el-form-item label="语言" prop="language" class="form-row-item">
                 <el-select v-model="tmdb.language" placeholder="请选择语言" filterable :loading="tmdbOptionsLoading">
-                  <el-option v-for="lang in tmdbLanguages" :key="lang.code" :label="lang.name" :value="lang.code" />
+                  <el-option v-for="lang in tmdbLanguages" :key="lang.code" :label="lang.label" :value="lang.code" />
                 </el-select>
               </el-form-item>
               <el-form-item label="地区" prop="region" class="form-row-item">
                 <el-select v-model="tmdb.region" placeholder="请选择地区" filterable :loading="tmdbOptionsLoading">
-                  <el-option v-for="reg in tmdbRegions" :key="reg.code" :label="reg.name" :value="reg.code" />
+                  <el-option v-for="reg in tmdbRegions" :key="reg.code" :label="reg.label" :value="reg.code" />
                 </el-select>
               </el-form-item>
             </div>
@@ -256,8 +256,8 @@ const tmdbTestStatus = ref<'success' | 'error' | null>(null)
 const tmdbId = ref<number | null>(null)
 
 // TMDB 选项
-const tmdbLanguages = ref<Array<{ code: string; name: string }>>([])
-const tmdbRegions = ref<Array<{ code: string; name: string }>>([])
+const tmdbLanguages = ref<Array<{ code: string; label: string }>>([])
+const tmdbRegions = ref<Array<{ code: string; label: string }>>([])
 const tmdbOptionsLoading = ref(false)
 
 // TMDB 校验规则

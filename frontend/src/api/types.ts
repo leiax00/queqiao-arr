@@ -196,8 +196,8 @@ export interface TmdbConfigUpdate {
 }
 
 export interface TmdbOptions {
-  languages: Array<{ code: string; name: string }>
-  regions: Array<{ code: string; name: string }>
+  languages: Array<{ code: string; label: string }>
+  regions: Array<{ code: string; label: string }>
 }
 
 // 系统相关类型

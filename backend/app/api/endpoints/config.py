@@ -118,6 +118,7 @@ class ProxyTestRequest(BaseModel):
 # ----------------------- TMDB 专用 Schema -----------------------
 
 class TmdbConfigOut(BaseModel):
+    id: Optional[int] = None
     service_name: str = Field(default="tmdb")
     service_type: str = Field(default="metadata")
     name: str = Field(default="默认TMDB")
@@ -591,6 +592,7 @@ async def get_tmdb_config(
         except Exception:
             extra = None
     out = TmdbConfigOut(
+        id=svc.id,
         service_name=svc.service_name,
         service_type=svc.service_type,
         name=svc.name,
@@ -640,7 +642,20 @@ async def update_tmdb_config(
             extra_config=extra_json,
             is_active=True if payload.is_active is None else payload.is_active,
         )
-        return success_response({"id": item.id})
+        # 返回完整配置
+        api_key_plain = encryption_manager.decrypt(item.api_key) if item.api_key else None
+        extra_dict = json.loads(item.extra_config) if item.extra_config else None
+        out = TmdbConfigOut(
+            id=item.id,
+            service_name=item.service_name,
+            service_type=item.service_type,
+            name=item.name,
+            url=item.url,
+            api_key_masked=_mask(api_key_plain),
+            extra_config=extra_dict or TmdbConfigOut.model_fields["extra_config"].default_factory(),
+            is_active=item.is_active,
+        )
+        return success_response(out.model_dump())
 
     svc = items[0]
     data: Dict[str, Any] = {}
@@ -657,7 +672,20 @@ async def update_tmdb_config(
     if payload.is_active is not None:
         data["is_active"] = payload.is_active
     svc = await crud_config.update_service_config(db, obj=svc, data=data)
-    return success_response({"id": svc.id})
+    # 返回完整配置
+    api_key_plain = encryption_manager.decrypt(svc.api_key) if svc.api_key else None
+    extra_dict = json.loads(svc.extra_config) if svc.extra_config else None
+    out = TmdbConfigOut(
+        id=svc.id,
+        service_name=svc.service_name,
+        service_type=svc.service_type,
+        name=svc.name,
+        url=svc.url,
+        api_key_masked=_mask(api_key_plain),
+        extra_config=extra_dict or TmdbConfigOut.model_fields["extra_config"].default_factory(),
+        is_active=svc.is_active,
+    )
+    return success_response(out.model_dump())
 
 
 # 移除独立 TMDB 测试端点，统一到 /api/config/test-connection
