@@ -96,7 +96,7 @@ export interface ConnectionTestResult {
 
 // ---- B-02 配置模块契约（FE-05 使用） ----
 
-export type ServiceName = 'sonarr' | 'prowlarr' | 'proxy'
+export type ServiceName = 'sonarr' | 'prowlarr' | 'proxy' | 'tmdb'
 
 export interface ServiceConfigOut {
   id: number
@@ -173,6 +173,32 @@ export type TestConnectionRequest = TestConnectionByBody | TestConnectionById
 export interface TestConnectionResponse {
   ok: boolean
   details: string
+}
+
+// TMDB 元数据提供商配置类型
+export interface TmdbConfigOut {
+  id?: number
+  api_key_masked?: string | null
+  language: string
+  region: string
+  include_adult: boolean
+  use_proxy: boolean
+  created_at?: string | null
+  updated_at?: string | null
+}
+
+export interface TmdbConfigUpdate {
+  url?: string
+  api_key?: string | null
+  language?: string
+  region?: string
+  include_adult?: boolean
+  use_proxy?: boolean
+}
+
+export interface TmdbOptions {
+  languages: Array<{ code: string; label: string }>
+  regions: Array<{ code: string; label: string }>
 }
 
 // 系统相关类型

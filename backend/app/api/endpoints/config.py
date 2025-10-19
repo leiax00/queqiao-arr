@@ -4,116 +4,39 @@
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List, Optional, Literal, Any, Dict
+from typing import Optional, Dict, Any
+import json
 
 from app.db.database import get_db
 from app.api.endpoints.auth import get_current_user
 from app.db import crud_config
-from app.models.config import ServiceConfig, Configuration
 from app.utils import success_response, error_response
 from app.utils.encryption import encryption_manager
-
-from pydantic import BaseModel, Field
+from app.utils.config_helpers import (
+    mask_api_key,
+    parse_extra_config,
+    encrypt_if_present,
+    decrypt_if_present,
+    get_active_proxy_config,
+    normalize_proxy_dict,
+)
+from app.api.schemas.config import (
+    ServiceConfigOut,
+    KVConfigOut,
+    ServiceConfigCreate,
+    KVConfigCreate,
+    ServiceConfigUpdate,
+    KVConfigUpdate,
+    TestConnectionByBody,
+    TestConnectionById,
+    TestConnectionRequest,
+    ProxyTestRequest,
+)
 
 router = APIRouter()
 
 
-class ServiceConfigOut(BaseModel):
-    id: int = Field(description="配置ID")
-    service_name: str = Field(description="服务名：sonarr|prowlarr|proxy")
-    service_type: str = Field(description="服务类型：api|proxy")
-    name: str = Field(description="配置名称")
-    url: str = Field(description="服务基础URL")
-    api_key_masked: Optional[str] = Field(default=None, description="API Key 掩码，仅展示末4位")
-    username: Optional[str] = Field(default=None, description="用户名（可选）")
-    is_active: bool = Field(description="是否启用")
-    extra_config: Optional[Dict[str, Any]] = Field(default=None, description="额外配置（JSON 反序列化）")
-    created_at: Optional[str] = Field(default=None, description="创建时间 ISO8601")
-    updated_at: Optional[str] = Field(default=None, description="更新时间 ISO8601")
-
-    class Config:
-        from_attributes = True
-
-
-class KVConfigOut(BaseModel):
-    id: int = Field(description="配置ID")
-    key: str = Field(description="键")
-    value: Optional[str] = Field(default=None, description="值（若加密则不返回明文）")
-    has_value: Optional[bool] = Field(default=None, description="当 is_encrypted=True 时，指示是否已设置值")
-    is_encrypted: bool = Field(description="是否加密存储")
-    is_active: bool = Field(description="是否启用")
-    created_at: Optional[str] = Field(default=None, description="创建时间 ISO8601")
-    updated_at: Optional[str] = Field(default=None, description="更新时间 ISO8601")
-
-    class Config:
-        from_attributes = True
-
-
-class ServiceConfigCreate(BaseModel):
-    type: Literal["service"] = Field(description="配置类型固定为 service", examples=["service"])
-    service_name: Literal["sonarr", "prowlarr", "proxy"] = Field(description="服务名", examples=["sonarr"])
-    service_type: Literal["api", "proxy"] = Field(description="服务类型", examples=["api"])
-    name: str = Field(min_length=1, max_length=100, description="配置名称", examples=["主Sonarr"])
-    url: str = Field(min_length=1, max_length=255, description="服务URL", examples=["http://127.0.0.1:8989"])
-    api_key: Optional[str] = Field(default=None, description="API Key（可选）")
-    username: Optional[str] = Field(default=None, description="用户名（可选）")
-    password: Optional[str] = Field(default=None, description="密码（可选）")
-    extra_config: Optional[Dict[str, Any]] = Field(default=None, description="额外配置（JSON）")
-    is_active: bool = Field(default=True, description="是否启用")
-
-
-class KVConfigCreate(BaseModel):
-    type: Literal["kv"] = Field(description="配置类型固定为 kv", examples=["kv"])
-    key: str = Field(min_length=1, max_length=100, description="键", examples=["http_proxy"])
-    value: Optional[str] = Field(default=None, description="值")
-    description: Optional[str] = Field(default=None, description="描述")
-    is_encrypted: bool = Field(default=False, description="是否加密存储")
-    is_active: bool = Field(default=True, description="是否启用")
-
-
-class ServiceConfigUpdate(BaseModel):
-    service_name: Optional[Literal["sonarr", "prowlarr", "proxy"]] = Field(default=None, description="服务名")
-    service_type: Optional[Literal["api", "proxy"]] = Field(default=None, description="服务类型")
-    name: Optional[str] = Field(default=None, min_length=1, max_length=100, description="配置名称")
-    url: Optional[str] = Field(default=None, min_length=1, max_length=255, description="服务URL")
-    api_key: Optional[str] = Field(default=None, description="API Key")
-    username: Optional[str] = Field(default=None, description="用户名")
-    password: Optional[str] = Field(default=None, description="密码")
-    extra_config: Optional[Dict[str, Any]] = Field(default=None, description="额外配置（JSON）")
-    is_active: Optional[bool] = Field(default=None, description="是否启用")
-
-
-class KVConfigUpdate(BaseModel):
-    key: Optional[str] = Field(default=None, min_length=1, max_length=100, description="键")
-    value: Optional[str] = Field(default=None, description="值")
-    description: Optional[str] = Field(default=None, description="描述")
-    is_encrypted: Optional[bool] = Field(default=None, description="是否加密存储")
-    is_active: Optional[bool] = Field(default=None, description="是否启用")
-
-
-class TestConnectionByBody(BaseModel):
-    mode: Literal["by_body"] = Field(default="by_body", description="按请求体测试")
-    service_name: Literal["sonarr", "prowlarr"] = Field(description="服务名", examples=["sonarr"])
-    url: str = Field(description="服务URL", examples=["http://127.0.0.1:8989"])
-    api_key: Optional[str] = Field(default=None, description="API Key（可选）")
-    username: Optional[str] = Field(default=None, description="用户名（可选）")
-    password: Optional[str] = Field(default=None, description="密码（可选）")
-    proxy: Optional[Dict[str, str]] = Field(default=None, description="代理配置，如 {http, https}")
-
-
-class TestConnectionById(BaseModel):
-    mode: Literal["by_id"] = Field(default="by_id", description="按ID测试")
-    id: int = Field(description="配置ID")
-
-
-TestConnectionRequest = TestConnectionByBody | TestConnectionById
-
-
-class ProxyTestRequest(BaseModel):
-    url: Optional[str] = Field(default=None, description="测试目标URL，留空使用后端默认")
-    proxy: Optional[Dict[str, str]] = Field(default=None, description="代理配置，如 {http, https}")
-    timeout_ms: Optional[int] = Field(default=None, ge=1000, le=30000, description="超时时间（毫秒，1-30秒）")
-
+# ----------------------- 配置概览 -----------------------
 
 @router.get(
     "/",
@@ -168,29 +91,10 @@ async def get_configurations(
     services = await crud_config.get_service_configs(db, service_name=service_name, is_active=is_active)
     kvs = await crud_config.get_configurations(db, is_active=is_active)
 
-    def mask_api_key(value: Optional[str]) -> Optional[str]:
-        """返回长度保持一致的掩码：前后各4位可见，中间以*填充。
-        对于长度<=8的短密钥，出于安全考虑全部以*遮蔽。
-        """
-        if not value:
-            return None
-        length = len(value)
-        if length <= 8:
-            return "*" * length
-        prefix = value[:4]
-        suffix = value[-4:]
-        middle_len = length - 8
-        return f"{prefix}{'*' * middle_len}{suffix}"
-
-    import json
+    # 构建服务配置输出
     services_out = []
     for s in services:
-        extra: Optional[Dict[str, Any]] = None
-        if getattr(s, "extra_config", None):
-            try:
-                extra = json.loads(s.extra_config)
-            except Exception:
-                extra = None
+        extra = parse_extra_config(getattr(s, "extra_config", None))
         services_out.append(
             ServiceConfigOut(
                 id=s.id,
@@ -198,7 +102,7 @@ async def get_configurations(
                 service_type=s.service_type,
                 name=s.name,
                 url=s.url,
-                api_key_masked=mask_api_key(encryption_manager.decrypt(s.api_key) if s.api_key else None),
+                api_key_masked=mask_api_key(decrypt_if_present(s.api_key)),
                 username=s.username,
                 is_active=s.is_active,
                 extra_config=extra,
@@ -206,6 +110,8 @@ async def get_configurations(
                 updated_at=s.updated_at.isoformat() if getattr(s, "updated_at", None) else None,
             )
         )
+    
+    # 构建 KV 配置输出
     kv_out = []
     for c in kvs:
         if c.is_encrypted:
@@ -240,6 +146,8 @@ async def get_configurations(
     return success_response({"services": [x.model_dump() for x in services_out], "kv": [x.model_dump() for x in kv_out]})
 
 
+# ----------------------- 创建配置 -----------------------
+
 @router.post(
     "/",
     summary="创建配置",
@@ -268,22 +176,18 @@ async def create_configuration(
         dup = await crud_config.is_service_name_duplicate(db, service_name=payload.service_name, name=payload.name)
         if dup:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="同名配置已存在")
-        api_key_enc = encryption_manager.encrypt(payload.api_key) if payload.api_key else None
-        password_enc = encryption_manager.encrypt(payload.password) if payload.password else None
-        extra_json = None
-        if payload.extra_config is not None:
-            import json
-
-            extra_json = json.dumps(payload.extra_config, ensure_ascii=False)
+        
+        extra_json = json.dumps(payload.extra_config, ensure_ascii=False) if payload.extra_config else None
+        
         item = await crud_config.create_service_config(
             db,
             service_name=payload.service_name,
             service_type=payload.service_type,
             name=payload.name,
             url=payload.url,
-            api_key=api_key_enc,
+            api_key=encrypt_if_present(payload.api_key),
             username=payload.username,
-            password=password_enc,
+            password=encrypt_if_present(payload.password),
             extra_config=extra_json,
             is_active=payload.is_active,
         )
@@ -292,6 +196,7 @@ async def create_configuration(
         dup = await crud_config.is_kv_key_duplicate(db, key=payload.key)
         if dup:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Key 已存在")
+        
         value_enc = encryption_manager.encrypt(payload.value) if payload.is_encrypted and payload.value else payload.value
         item = await crud_config.create_configuration(
             db,
@@ -303,6 +208,8 @@ async def create_configuration(
         )
         return success_response({"id": item.id})
 
+
+# ----------------------- 更新配置 -----------------------
 
 @router.put(
     "/{config_id}",
@@ -333,18 +240,19 @@ async def update_configuration(
             )
             if dup:
                 raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="同名配置已存在")
+        
         for field in ["service_name", "service_type", "name", "url", "username", "is_active"]:
             value = getattr(payload, field, None)
             if value is not None:
                 update_data[field] = value
+        
         if payload.api_key is not None:
-            update_data["api_key"] = encryption_manager.encrypt(payload.api_key) if payload.api_key else None
+            update_data["api_key"] = encrypt_if_present(payload.api_key)
         if payload.password is not None:
-            update_data["password"] = encryption_manager.encrypt(payload.password) if payload.password else None
+            update_data["password"] = encrypt_if_present(payload.password)
         if payload.extra_config is not None:
-            import json
-
             update_data["extra_config"] = json.dumps(payload.extra_config, ensure_ascii=False)
+        
         svc = await crud_config.update_service_config(db, obj=svc, data=update_data)
         return success_response({"id": svc.id})
 
@@ -352,25 +260,32 @@ async def update_configuration(
     kv = await crud_config.get_configuration_by_id(db, config_id=config_id)
     if not kv:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="配置不存在")
+    
     if payload.key:
         dup = await crud_config.is_kv_key_duplicate(db, key=payload.key, exclude_id=kv.id)
         if dup:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Key 已存在")
+    
     update_data = {}
     for field in ["key", "description", "is_active"]:
         value = getattr(payload, field, None)
         if value is not None:
             update_data[field] = value
+    
     if getattr(payload, "is_encrypted", None) is not None:
-        update_data["is_encrypted"] = payload.is_encrypted  # 切换加密标志本身不改变存量明文
+        update_data["is_encrypted"] = payload.is_encrypted
+    
     if getattr(payload, "value", None) is not None:
         if payload.value and (payload.is_encrypted if payload.is_encrypted is not None else kv.is_encrypted):
             update_data["value"] = encryption_manager.encrypt(payload.value)
         else:
             update_data["value"] = payload.value
+    
     kv = await crud_config.update_configuration(db, obj=kv, data=update_data)
     return success_response({"id": kv.id})
 
+
+# ----------------------- 删除配置 -----------------------
 
 @router.delete(
     "/{config_id}",
@@ -390,27 +305,31 @@ async def delete_configuration(
     if svc:
         await crud_config.delete_service_config(db, obj=svc)
         return success_response({"deleted": True})
+    
     kv = await crud_config.get_configuration_by_id(db, config_id=config_id)
     if not kv:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="配置不存在")
+    
     await crud_config.delete_configuration(db, obj=kv)
     return success_response({"deleted": True})
 
 
+# ----------------------- 连接测试 -----------------------
+
 @router.post(
     "/test-connection",
     summary="测试服务连通性",
-    description="测试 Sonarr/Prowlarr 的连通性，支持按请求体或按配置ID测试。",
+    description="测试 Sonarr/Prowlarr/TMDB 的连通性，支持按请求体（by_body）或按配置ID（by_id）测试。",
     responses={
         200: {
             "description": "测试结果",
             "content": {
                 "application/json": {
-                    "example": {"code": 200, "message": "OK", "data": {"ok": True, "details": "HTTP 200"}}
+                    "example": {"code": 200, "message": "OK", "data": {"ok": True, "details": "HTTP 200", "latency_ms": 123}}
                 }
             }
         },
-        400: {"description": "参数错误", "content": {"application/json": {"example": {"detail": "仅支持 sonarr/prowlarr 连通性测试"}}}},
+        400: {"description": "参数错误", "content": {"application/json": {"example": {"detail": "仅支持 sonarr/prowlarr/tmdb 连通性测试"}}}},
         404: {"description": "配置不存在", "content": {"application/json": {"example": {"detail": "配置不存在"}}}},
     },
 )
@@ -427,30 +346,27 @@ async def test_service_connection(
     raw_api_key: Optional[str] = None
     proxy: Optional[Dict[str, str]] = None
 
-    def normalize_proxies(p: Optional[Dict[str, str]]) -> Optional[Dict[str, str]]:
-        if not p:
-            return None
-        normalized: Dict[str, str] = {}
-        for k, v in p.items():
-            key = k if "://" in k else f"{k}://"
-            normalized[key] = v
-        return normalized
-
     if isinstance(payload, TestConnectionByBody):
         service_name = payload.service_name
         url = payload.url
         raw_api_key = payload.api_key
-        proxy = normalize_proxies(payload.proxy)
+        proxy = normalize_proxy_dict(payload.proxy)
     else:
         svc = await crud_config.get_service_config_by_id(db, config_id=payload.id)
         if not svc:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="配置不存在")
+        
         service_name = svc.service_name
         url = svc.url
-        raw_api_key = encryption_manager.decrypt(svc.api_key) if svc.api_key else None
+        raw_api_key = decrypt_if_present(svc.api_key)
+        
+        # 解析 use_proxy 并注入"proxy 类型服务"作为代理
+        extra = parse_extra_config(getattr(svc, "extra_config", None)) or {}
+        if isinstance(extra, dict) and extra.get("use_proxy"):
+            proxy = await get_active_proxy_config(db)
 
-    if service_name not in {"sonarr", "prowlarr"}:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="仅支持 sonarr/prowlarr 连通性测试")
+    if service_name not in {"sonarr", "prowlarr", "tmdb"}:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="仅支持 sonarr/prowlarr/tmdb 连通性测试")
 
     # 使用客户端层进行连接测试
     try:
@@ -466,6 +382,61 @@ async def test_service_connection(
     except ValueError as e:
         return error_response(message=str(e), code=400)
 
+
+# ----------------------- TMDB 专用端点 -----------------------
+
+# TMDB 配置已统一使用通用接口（GET / POST / PUT /{id}），此处仅保留特定于 TMDB 的选项接口
+
+@router.get(
+    "/tmdb/options",
+    summary="TMDB 选项（语言/地区）",
+    responses={
+        200: {
+            "description": "成功",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "code": 200,
+                        "message": "OK",
+                        "data": {
+                            "languages": [
+                                {"code": "zh-CN", "label": "中文（简体）"},
+                                {"code": "zh-TW", "label": "中文（繁體）"},
+                                {"code": "en-US", "label": "English (US)"}
+                            ],
+                            "regions": [
+                                {"code": "CN", "label": "中国大陆"},
+                                {"code": "HK", "label": "中国香港"},
+                                {"code": "TW", "label": "中国台湾"},
+                                {"code": "US", "label": "United States"}
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+    },
+)
+async def get_tmdb_options(
+    current_user=Depends(get_current_user),
+):
+    data = {
+        "languages": [
+            {"code": "zh-CN", "label": "中文（简体）"},
+            {"code": "zh-TW", "label": "中文（繁體）"},
+            {"code": "en-US", "label": "English (US)"},
+        ],
+        "regions": [
+            {"code": "CN", "label": "中国大陆"},
+            {"code": "HK", "label": "中国香港"},
+            {"code": "TW", "label": "中国台湾"},
+            {"code": "US", "label": "United States"},
+        ],
+    }
+    return success_response(data)
+
+
+# ----------------------- 代理测试 -----------------------
 
 @router.post(
     "/test-proxy",
@@ -487,19 +458,12 @@ async def test_proxy_connectivity(
             timeout_seconds = max(1.0, min(30.0, float(payload.timeout_ms) / 1000.0))
         except Exception:
             timeout_seconds = 5.0
+    
     timeout = httpx.Timeout(timeout_seconds)
     start = time.perf_counter()
+    
     try:
-        proxies = None
-        if payload.proxy:
-            proxies = {}
-            for k, v in payload.proxy.items():
-                proxies[k if "://" in k else f"{k}://"] = v
-        # 在新版 httpx（尤其是 0.27+）中，proxies 的 key/value 格式必须是完整的 URL形式，而不是以前那种简单写 "http" 或 "https" 的形式。
-        # proxies = {
-        #     "http://": "http://127.0.0.1:7890",
-        #     "https://": "http://127.0.0.1:7890",
-        # }
+        proxies = normalize_proxy_dict(payload.proxy)
         async with httpx.AsyncClient(timeout=timeout, proxies=proxies) as client:
             resp = await client.get(target_url)
             latency_ms = int((time.perf_counter() - start) * 1000)

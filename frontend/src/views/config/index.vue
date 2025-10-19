@@ -16,77 +16,125 @@
       <div class="services-grid">
         <!-- Sonarr -->
         <ConfigFormCard title="📺 Sonarr 配置" subtitle="配置 Sonarr 服务连接">
-          <el-form ref="sonarrFormRef" :model="sonarr" :rules="serviceRules" label-width="100px">
+          <el-form ref="sonarrFormRef" :model="sonarr.config" :rules="sonarr.serviceRules" label-width="100px">
             <el-form-item label="服务地址" prop="url">
-              <el-input v-model="sonarr.url" placeholder="http://127.0.0.1:8989" />
+              <el-input v-model="sonarr.config.url" placeholder="http://127.0.0.1:8989" />
             </el-form-item>
             <el-form-item label="API 密钥" prop="apiKey">
-              <SecretInput v-model="sonarr.apiKey" placeholder="请输入 API Key" :hint="sonarrHint" />
+              <SecretInput v-model="sonarr.config.apiKey" placeholder="请输入 API Key" :hint="sonarr.hint.value" />
             </el-form-item>
             <el-form-item label="启用代理">
-              <el-switch v-model="sonarr.useProxy" />
+              <el-switch v-model="sonarr.config.useProxy" />
             </el-form-item>
           </el-form>
           <template #footer>
-            <el-button @click="resetSonarr">重置</el-button>
+            <el-button @click="sonarr.reset">重置</el-button>
             <el-button 
               type="info" 
-              :loading="sonarrTesting" 
-              :disabled="!isSonarrValid" 
-              @click="testSonarr"
+              :loading="sonarr.testing.value" 
+              :disabled="!sonarr.isValid.value" 
+              @click="sonarr.test(proxyConfig.proxy.address)"
             >
-              <el-icon v-if="sonarrTestStatus === 'success'" class="test-status-icon success"><CircleCheck /></el-icon>
-              <el-icon v-else-if="sonarrTestStatus === 'error'" class="test-status-icon error"><CircleClose /></el-icon>
+              <el-icon v-if="sonarr.testStatus.value === 'success'" class="test-status-icon success"><CircleCheck /></el-icon>
+              <el-icon v-else-if="sonarr.testStatus.value === 'error'" class="test-status-icon error"><CircleClose /></el-icon>
               测试连接
             </el-button>
-            <el-button type="primary" :loading="sonarrSaving" :disabled="!sonarrChanged || !isSonarrValid" @click="saveSonarr">保存</el-button>
+            <el-button type="primary" :loading="sonarr.saving.value" :disabled="!sonarr.changed.value || !sonarr.isValid.value" @click="sonarr.save">保存</el-button>
           </template>
         </ConfigFormCard>
 
         <!-- Prowlarr -->
         <ConfigFormCard title="🔍 Prowlarr 配置" subtitle="配置 Prowlarr 索引器连接">
-          <el-form ref="prowlarrFormRef" :model="prowlarr" :rules="serviceRules" label-width="100px">
+          <el-form ref="prowlarrFormRef" :model="prowlarr.config" :rules="prowlarr.serviceRules" label-width="100px">
             <el-form-item label="服务地址" prop="url">
-              <el-input v-model="prowlarr.url" placeholder="http://127.0.0.1:9696" />
+              <el-input v-model="prowlarr.config.url" placeholder="http://127.0.0.1:9696" />
             </el-form-item>
             <el-form-item label="API 密钥" prop="apiKey">
-              <SecretInput v-model="prowlarr.apiKey" placeholder="请输入 API Key" :hint="prowlarrHint" />
+              <SecretInput v-model="prowlarr.config.apiKey" placeholder="请输入 API Key" :hint="prowlarr.hint.value" />
             </el-form-item>
             <el-form-item label="启用代理">
-              <el-switch v-model="prowlarr.useProxy" />
+              <el-switch v-model="prowlarr.config.useProxy" />
             </el-form-item>
           </el-form>
           <template #footer>
-            <el-button @click="resetProwlarr">重置</el-button>
+            <el-button @click="prowlarr.reset">重置</el-button>
             <el-button 
               type="info" 
-              :loading="prowlarrTesting" 
-              :disabled="!isProwlarrValid" 
-              @click="testProwlarr"
+              :loading="prowlarr.testing.value" 
+              :disabled="!prowlarr.isValid.value" 
+              @click="prowlarr.test(proxyConfig.proxy.address)"
             >
-              <el-icon v-if="prowlarrTestStatus === 'success'" class="test-status-icon success"><CircleCheck /></el-icon>
-              <el-icon v-else-if="prowlarrTestStatus === 'error'" class="test-status-icon error"><CircleClose /></el-icon>
+              <el-icon v-if="prowlarr.testStatus.value === 'success'" class="test-status-icon success"><CircleCheck /></el-icon>
+              <el-icon v-else-if="prowlarr.testStatus.value === 'error'" class="test-status-icon error"><CircleClose /></el-icon>
               测试连接
             </el-button>
-            <el-button type="primary" :loading="prowlarrSaving" :disabled="!prowlarrChanged || !isProwlarrValid" @click="saveProwlarr">保存</el-button>
+            <el-button type="primary" :loading="prowlarr.saving.value" :disabled="!prowlarr.changed.value || !prowlarr.isValid.value" @click="prowlarr.save">保存</el-button>
+          </template>
+        </ConfigFormCard>
+      </div>
+
+      <!-- TMDB 元数据提供商配置 - 与上方服务配置对齐 -->
+      <div class="services-grid">
+        <ConfigFormCard title="🎬 TMDB 元数据配置" subtitle="配置 The Movie Database API 用于获取影视元数据">
+          <el-form ref="tmdbFormRef" :model="tmdbConfig.tmdb" :rules="tmdbConfig.tmdbRules" label-width="120px" class="tmdb-form">
+            <el-form-item label="API 地址" prop="apiUrl">
+              <el-input v-model="tmdbConfig.tmdb.apiUrl" placeholder="https://api.themoviedb.org/3" />
+            </el-form-item>
+            <el-form-item label="API 密钥" prop="apiKey">
+              <SecretInput v-model="tmdbConfig.tmdb.apiKey" placeholder="请输入 TMDB API Key" :hint="tmdbConfig.tmdbHint.value" />
+            </el-form-item>
+            <div class="form-row">
+              <el-form-item label="语言" prop="language" class="form-row-item">
+                <el-select v-model="tmdbConfig.tmdb.language" placeholder="请选择语言" filterable :loading="tmdbConfig.tmdbOptionsLoading.value">
+                  <el-option v-for="lang in tmdbConfig.tmdbLanguages.value" :key="lang.code" :label="lang.label" :value="lang.code" />
+                </el-select>
+              </el-form-item>
+              <el-form-item label="地区" prop="region" class="form-row-item">
+                <el-select v-model="tmdbConfig.tmdb.region" placeholder="请选择地区" filterable :loading="tmdbConfig.tmdbOptionsLoading.value">
+                  <el-option v-for="reg in tmdbConfig.tmdbRegions.value" :key="reg.code" :label="reg.label" :value="reg.code" />
+                </el-select>
+              </el-form-item>
+            </div>
+            <div class="form-row">
+              <el-form-item label="包含成人内容" class="form-row-item">
+                <el-switch v-model="tmdbConfig.tmdb.includeAdult" />
+              </el-form-item>
+              <el-form-item label="启用代理" class="form-row-item">
+                <el-switch v-model="tmdbConfig.tmdb.useProxy" />
+              </el-form-item>
+            </div>
+          </el-form>
+          <template #footer>
+            <el-button @click="tmdbConfig.resetTmdb">重置</el-button>
+            <el-button 
+              type="info" 
+              :loading="tmdbConfig.tmdbTesting.value" 
+              :disabled="!tmdbConfig.isTmdbValid.value" 
+              @click="tmdbConfig.testTmdb(proxyConfig.proxy.address)"
+            >
+              <el-icon v-if="tmdbConfig.tmdbTestStatus.value === 'success'" class="test-status-icon success"><CircleCheck /></el-icon>
+              <el-icon v-else-if="tmdbConfig.tmdbTestStatus.value === 'error'" class="test-status-icon error"><CircleClose /></el-icon>
+              测试连接
+            </el-button>
+            <el-button type="primary" :loading="tmdbConfig.tmdbSaving.value" :disabled="!tmdbConfig.tmdbChanged.value || !tmdbConfig.isTmdbValid.value" @click="tmdbConfig.saveTmdb(loadOverview)">保存</el-button>
           </template>
         </ConfigFormCard>
       </div>
 
       <!-- 代理配置 - 单行 -->
       <ConfigFormCard class="proxy-card" title="🌐 网络代理配置" subtitle="配置全局代理服务器，服务配置可选择是否使用">
-        <el-form ref="proxyFormRef" :model="proxy" :rules="proxyRules" label-width="100px" class="proxy-form">
+        <el-form ref="proxyFormRef" :model="proxyConfig.proxy" :rules="proxyConfig.proxyRules" label-width="100px" class="proxy-form">
           <div class="proxy-form-grid">
             <el-form-item label="代理地址" prop="address" class="proxy-address">
-              <el-input v-model="proxy.address" placeholder="http://127.0.0.1:7890" />
+              <el-input v-model="proxyConfig.proxy.address" placeholder="http://127.0.0.1:7890" />
             </el-form-item>
             
             <el-form-item label="测试地址" prop="testUrl" class="proxy-test-url">
-              <el-input v-model="proxy.testUrl" placeholder="https://www.google.com/generate_204" />
+              <el-input v-model="proxyConfig.proxy.testUrl" placeholder="https://www.google.com/generate_204" />
             </el-form-item>
 
             <el-form-item label="超时时间" prop="timeout" class="proxy-timeout">
-              <el-input-number v-model="proxy.timeout" :min="1000" :max="30000" :step="1000" controls-position="right" />
+              <el-input-number v-model="proxyConfig.proxy.timeout" :min="1000" :max="30000" :step="1000" controls-position="right" />
               <span class="unit-hint">毫秒</span>
             </el-form-item>
             
@@ -97,18 +145,18 @@
           </div>
         </el-form>
         <template #footer>
-          <el-button @click="resetProxy">重置</el-button>
+          <el-button @click="proxyConfig.resetProxy">重置</el-button>
           <el-button 
             type="info" 
-            :loading="proxyTesting" 
-            :disabled="!proxy.address" 
-            @click="testProxy"
+            :loading="proxyConfig.proxyTesting.value" 
+            :disabled="!proxyConfig.proxy.address" 
+            @click="proxyConfig.testProxy"
           >
-            <el-icon v-if="proxyTestStatus === 'success'" class="test-status-icon success"><CircleCheck /></el-icon>
-            <el-icon v-else-if="proxyTestStatus === 'error'" class="test-status-icon error"><CircleClose /></el-icon>
+            <el-icon v-if="proxyConfig.proxyTestStatus.value === 'success'" class="test-status-icon success"><CircleCheck /></el-icon>
+            <el-icon v-else-if="proxyConfig.proxyTestStatus.value === 'error'" class="test-status-icon error"><CircleClose /></el-icon>
             测试连接
           </el-button>
-          <el-button type="primary" :loading="proxySaving" :disabled="!proxyChanged" @click="saveProxy">保存配置</el-button>
+          <el-button type="primary" :loading="proxyConfig.proxySaving.value" :disabled="!proxyConfig.proxyChanged.value" @click="proxyConfig.saveProxy">保存配置</el-button>
         </template>
       </ConfigFormCard>
     </div>
@@ -116,151 +164,40 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
-import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
+import { ref, onMounted } from 'vue'
+import { ElMessage } from 'element-plus'
 import { InfoFilled, CircleCheck, CircleClose, Refresh } from '@element-plus/icons-vue'
 import ConfigFormCard from '@/components/common/ConfigFormCard.vue'
 import SecretInput from '@/components/form/SecretInput.vue'
 import { configAPI } from '@/api/config'
-import type { OverviewResponse, TestConnectionRequest } from '@/api/types'
+import type { OverviewResponse } from '@/api/types'
+import { useProxyConfig } from '@/composables/useProxyConfig'
+import { useServiceConfig } from '@/composables/useServiceConfig'
+import { useTmdbConfig } from '@/composables/useTmdbConfig'
 
-// 代理配置
-const proxyFormRef = ref<FormInstance>()
-const proxy = reactive({
-  address: '',
-  testUrl: '',
-  timeout: 5000,
-})
-const proxyInitial = reactive({ ...proxy })
-
-const proxyRules = reactive<FormRules>({
-  address: [
-    { pattern: /^(https?|socks5):\/\/.+/, message: '请输入有效的代理地址', trigger: 'blur' },
-  ],
-  testUrl: [
-    { pattern: /^(https?:)\/\/.+/, message: '请输入有效的测试地址', trigger: 'blur' },
-  ],
-  timeout: [
-    { type: 'number', min: 1000, max: 30000, message: '超时时间应在 1-30 秒之间', trigger: 'change' },
-  ],
-})
-
-const proxySaving = ref(false)
-const proxyTesting = ref(false)
-const proxyTestStatus = ref<'success' | 'error' | null>(null)
-const proxyChanged = computed(() => JSON.stringify(proxy) !== JSON.stringify(proxyInitial))
-
-// 服务配置通用结构
-interface ServiceConfig {
-  url: string
-  apiKey: string
-  useProxy: boolean
-}
-
-const defaultService = (): ServiceConfig => ({
-  url: '',
-  apiKey: '',
-  useProxy: false,
-})
-
-// Sonarr
-const sonarrFormRef = ref<FormInstance>()
-const sonarr = reactive<ServiceConfig>(defaultService())
-const sonarrInitial = reactive<ServiceConfig>({ ...sonarr })
-const sonarrHint = ref<string>('已保存的密钥不会回显明文')
-const sonarrSaving = ref(false)
-const sonarrTesting = ref(false)
-const sonarrTestStatus = ref<'success' | 'error' | null>(null)
-
-// Prowlarr
-const prowlarrFormRef = ref<FormInstance>()
-const prowlarr = reactive<ServiceConfig>(defaultService())
-const prowlarrInitial = reactive<ServiceConfig>({ ...prowlarr })
-const prowlarrHint = ref<string>('已保存的密钥不会回显明文')
-const prowlarrSaving = ref(false)
-const prowlarrTesting = ref(false)
-const prowlarrTestStatus = ref<'success' | 'error' | null>(null)
-
-// 服务校验规则
-const serviceRules = reactive<FormRules<ServiceConfig>>({
-  url: [
-    { required: true, message: '请输入服务地址', trigger: 'blur' },
-    { pattern: /^https?:\/\/.+/, message: '请输入有效的 URL（http:// 或 https://）', trigger: 'blur' },
-  ],
-  apiKey: [
-    {
-      validator: (_rule, value: string, callback) => {
-        // 若已存在配置（有ID），apiKey 可为空；否则需 >= 8
-        const currentId = _rule?.field?.includes('prowlarr') ? prowlarrId.value : sonarrId.value
-        if (currentId !== null && (!value || value.length === 0)) return callback()
-        if (!value || value.length < 8) return callback(new Error('API 密钥长度至少 8 字符'))
-        return callback()
-      },
-      trigger: 'blur',
-    },
-  ],
-})
-
-
-// 已有配置ID（用于判断更新/创建、以及按ID测试）
-const sonarrId = ref<number | null>(null)
-const prowlarrId = ref<number | null>(null)
-const proxyId = ref<number | null>(null)
-
-// 计算属性（允许已存在配置但不输入新 API Key 的场景）
-const isSonarrValid = computed(() => !!sonarr.url && /^https?:\/\/.+/.test(sonarr.url) && (sonarr.apiKey.length >= 8 || sonarrId.value !== null))
-const isProwlarrValid = computed(() => !!prowlarr.url && /^https?:\/\/.+/.test(prowlarr.url) && (prowlarr.apiKey.length >= 8 || prowlarrId.value !== null))
-const sonarrChanged = computed(() => JSON.stringify(sonarr) !== JSON.stringify(sonarrInitial))
-const prowlarrChanged = computed(() => JSON.stringify(prowlarr) !== JSON.stringify(prowlarrInitial))
+// 使用组合式函数管理各个配置模块
+const proxyConfig = useProxyConfig()
+const sonarr = useServiceConfig('sonarr')
+const prowlarr = useServiceConfig('prowlarr')
+const tmdbConfig = useTmdbConfig()
 
 // 拉取概览并填充表单
 const loadOverview = async () => {
   try {
     const data: OverviewResponse = await configAPI.getOverview()
     // 服务配置
-    const svc = (name: 'sonarr' | 'prowlarr' | 'proxy') => data.services.find(s => s.service_name === name) || null
+    const svc = (name: 'sonarr' | 'prowlarr' | 'proxy' | 'tmdb') => data.services.find(s => s.service_name === name) || null
+    
     const sonarrSvc = svc('sonarr')
     const prowlarrSvc = svc('prowlarr')
     const proxySvc = svc('proxy')
+    const tmdbSvc = svc('tmdb')
 
-    if (sonarrSvc) {
-      sonarrId.value = sonarrSvc.id
-      sonarr.url = sonarrSvc.url || ''
-      sonarr.apiKey = '' // 不回显密钥
-      if (sonarrSvc.api_key_masked) {
-        sonarrHint.value = `已保存：${sonarrSvc.api_key_masked}`
-      } else {
-        sonarrHint.value = '已保存的密钥不会回显明文'
-      }
-      // 回显 useProxy
-      if (sonarrSvc.extra_config && typeof sonarrSvc.extra_config.useProxy === 'boolean') {
-        sonarr.useProxy = !!sonarrSvc.extra_config.useProxy
-      }
-      Object.assign(sonarrInitial, sonarr)
-    }
-    if (prowlarrSvc) {
-      prowlarrId.value = prowlarrSvc.id
-      prowlarr.url = prowlarrSvc.url || ''
-      prowlarr.apiKey = ''
-      if (prowlarrSvc.api_key_masked) {
-        prowlarrHint.value = `已保存：${prowlarrSvc.api_key_masked}`
-      } else {
-        prowlarrHint.value = '已保存的密钥不会回显明文'
-      }
-      if (prowlarrSvc.extra_config && typeof prowlarrSvc.extra_config.useProxy === 'boolean') {
-        prowlarr.useProxy = !!prowlarrSvc.extra_config.useProxy
-      }
-      Object.assign(prowlarrInitial, prowlarr)
-    }
-    if (proxySvc) {
-      proxyId.value = proxySvc.id
-      proxy.address = proxySvc.url || ''
-      if (proxySvc.extra_config) {
-        if (typeof proxySvc.extra_config.test_url === 'string') proxy.testUrl = proxySvc.extra_config.test_url
-        if (typeof proxySvc.extra_config.timeout_ms === 'number') proxy.timeout = proxySvc.extra_config.timeout_ms
-      }
-      Object.assign(proxyInitial, proxy)
-    }
+    // 加载各个配置
+    sonarr.loadConfig(sonarrSvc)
+    prowlarr.loadConfig(prowlarrSvc)
+    proxyConfig.loadProxyConfig(proxySvc)
+    tmdbConfig.loadTmdbConfig(tmdbSvc)
   } catch (e) {
     ElMessage.error('加载配置失败')
   }
@@ -268,6 +205,7 @@ const loadOverview = async () => {
 
 onMounted(() => {
   loadOverview()
+  tmdbConfig.loadTmdbOptions()
 })
 
 // 刷新配置
@@ -280,226 +218,6 @@ const refreshConfigs = async () => {
   } finally {
     refreshing.value = false
   }
-}
-
-// 代理操作
-const saveProxy = async () => {
-  try {
-    await proxyFormRef.value?.validate()
-    proxySaving.value = true
-    const payload = {
-      type: 'service',
-      service_name: 'proxy',
-      service_type: 'proxy',
-      name: '默认',
-      url: proxy.address || '',
-      extra_config: {
-        test_url: proxy.testUrl || undefined,
-        timeout_ms: proxy.timeout,
-      },
-      is_active: true,
-    } as const
-
-    if (proxyId.value != null) {
-      await configAPI.updateConfig(proxyId.value, {
-        url: payload.url,
-        extra_config: payload.extra_config,
-        is_active: true,
-      })
-    } else {
-      const res = await configAPI.createConfig(payload)
-      proxyId.value = res.id
-    }
-    Object.assign(proxyInitial, proxy)
-    ElMessage.success('代理配置保存成功')
-  } catch (e) {
-    ElMessage.error('代理配置保存失败')
-  } finally {
-    proxySaving.value = false
-  }
-}
-
-const testProxy = async () => {
-  try {
-    await proxyFormRef.value?.validate()
-    proxyTesting.value = true
-    proxyTestStatus.value = null
-    const url = proxy.testUrl || undefined
-    const proxies = proxy.address ? { http: proxy.address, https: proxy.address } : undefined
-    const timeout_ms = proxy.timeout
-    const res = await configAPI.testProxy({ url, proxy: proxies, timeout_ms })
-    if (res.ok) {
-      proxyTestStatus.value = 'success'
-      const latency = res.latency_ms ? `延迟 ${res.latency_ms}ms` : res.details
-      ElMessage.success({ message: `代理连通性测试成功！${latency}`, duration: 3000 })
-    } else {
-      proxyTestStatus.value = 'error'
-      ElMessage.error({ message: `代理连接失败：${res.details}`, duration: 4000 })
-    }
-  } catch (e) {
-    proxyTestStatus.value = 'error'
-    ElMessage.error('请先完善代理配置')
-  } finally {
-    proxyTesting.value = false
-  }
-}
-
-const resetProxy = () => {
-  Object.assign(proxy, proxyInitial)
-  proxyFormRef.value?.clearValidate()
-}
-
-// Sonarr 操作
-const saveSonarr = async () => {
-  try {
-    await sonarrFormRef.value?.validate()
-    sonarrSaving.value = true
-    const payloadBase = {
-      url: sonarr.url,
-      extra_config: { useProxy: sonarr.useProxy },
-      is_active: true,
-    } as any
-
-    if (sonarr.apiKey) payloadBase.api_key = sonarr.apiKey
-
-    if (sonarrId.value != null) {
-      await configAPI.updateConfig(sonarrId.value, payloadBase)
-    } else {
-      const res = await configAPI.createConfig({
-        type: 'service',
-        service_name: 'sonarr',
-        service_type: 'api',
-        name: '默认',
-        url: sonarr.url,
-        api_key: sonarr.apiKey || undefined,
-        extra_config: { useProxy: sonarr.useProxy },
-        is_active: true,
-      })
-      sonarrId.value = res.id
-    }
-    Object.assign(sonarrInitial, sonarr)
-    ElMessage.success('Sonarr 配置保存成功')
-  } catch (e) {
-    ElMessage.error('Sonarr 配置保存失败')
-  } finally {
-    sonarrSaving.value = false
-  }
-}
-
-const testSonarr = async () => {
-  try {
-    await sonarrFormRef.value?.validate()
-    sonarrTesting.value = true
-    sonarrTestStatus.value = null
-    let body: TestConnectionRequest
-    if (!sonarr.apiKey && sonarrId.value != null) {
-      body = { mode: 'by_id', id: sonarrId.value }
-    } else {
-      body = {
-        mode: 'by_body',
-        service_name: 'sonarr',
-        url: sonarr.url,
-        api_key: sonarr.apiKey || undefined,
-      }
-      if (sonarr.useProxy && proxy.address) {
-        ;(body as any).proxy = { http: proxy.address, https: proxy.address }
-      }
-    }
-    const res = await configAPI.testConnection(body)
-    if (res.ok) {
-      sonarrTestStatus.value = 'success'
-      ElMessage.success({ message: `Sonarr 连接成功！${res.details}`, duration: 3000 })
-    } else {
-      sonarrTestStatus.value = 'error'
-      ElMessage.error({ message: `Sonarr 连接失败：${res.details}`, duration: 4000 })
-    }
-  } catch (e) {
-    sonarrTestStatus.value = 'error'
-    ElMessage.error('请先完善 Sonarr 配置')
-  } finally {
-    sonarrTesting.value = false
-  }
-}
-
-const resetSonarr = () => {
-  Object.assign(sonarr, sonarrInitial)
-  sonarrFormRef.value?.clearValidate()
-}
-
-// Prowlarr 操作
-const saveProwlarr = async () => {
-  try {
-    await prowlarrFormRef.value?.validate()
-    prowlarrSaving.value = true
-    const payloadBase = {
-      url: prowlarr.url,
-      extra_config: { useProxy: prowlarr.useProxy },
-      is_active: true,
-    } as any
-    if (prowlarr.apiKey) payloadBase.api_key = prowlarr.apiKey
-
-    if (prowlarrId.value != null) {
-      await configAPI.updateConfig(prowlarrId.value, payloadBase)
-    } else {
-      const res = await configAPI.createConfig({
-        type: 'service',
-        service_name: 'prowlarr',
-        service_type: 'api',
-        name: '默认',
-        url: prowlarr.url,
-        api_key: prowlarr.apiKey || undefined,
-        extra_config: { useProxy: prowlarr.useProxy },
-        is_active: true,
-      })
-      prowlarrId.value = res.id
-    }
-    Object.assign(prowlarrInitial, prowlarr)
-    ElMessage.success('Prowlarr 配置保存成功')
-  } catch (e) {
-    ElMessage.error('Prowlarr 配置保存失败')
-  } finally {
-    prowlarrSaving.value = false
-  }
-}
-
-const testProwlarr = async () => {
-  try {
-    await prowlarrFormRef.value?.validate()
-    prowlarrTesting.value = true
-    prowlarrTestStatus.value = null
-    let body: TestConnectionRequest
-    if (!prowlarr.apiKey && prowlarrId.value != null) {
-      body = { mode: 'by_id', id: prowlarrId.value }
-    } else {
-      body = {
-        mode: 'by_body',
-        service_name: 'prowlarr',
-        url: prowlarr.url,
-        api_key: prowlarr.apiKey || undefined,
-      }
-      if (prowlarr.useProxy && proxy.address) {
-        ;(body as any).proxy = { http: proxy.address, https: proxy.address }
-      }
-    }
-    const res = await configAPI.testConnection(body)
-    if (res.ok) {
-      prowlarrTestStatus.value = 'success'
-      ElMessage.success({ message: `Prowlarr 连接成功！${res.details}`, duration: 3000 })
-    } else {
-      prowlarrTestStatus.value = 'error'
-      ElMessage.error({ message: `Prowlarr 连接失败：${res.details}`, duration: 4000 })
-    }
-  } catch (e) {
-    prowlarrTestStatus.value = 'error'
-    ElMessage.error('请先完善 Prowlarr 配置')
-  } finally {
-    prowlarrTesting.value = false
-  }
-}
-
-const resetProwlarr = () => {
-  Object.assign(prowlarr, prowlarrInitial)
-  prowlarrFormRef.value?.clearValidate()
 }
 </script>
 
@@ -595,6 +313,22 @@ const resetProwlarr = () => {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }
+
+  .tmdb-form {
+    .form-row {
+      display: grid;
+      grid-template-columns: repeat(1, minmax(0, 1fr));
+      gap: 0 20px;
+
+      @media (min-width: 768px) {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .form-row-item {
+        margin-bottom: 18px;
+      }
+    }
+  }
 }
 
 :deep(.el-form-item__label) {
@@ -630,4 +364,3 @@ const resetProwlarr = () => {
   color: #94a3b8 !important;
 }
 </style>
-

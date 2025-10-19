@@ -5,6 +5,8 @@ import type {
   ServiceConfigUpdate,
   TestConnectionRequest,
   TestConnectionResponse,
+  TmdbConfigUpdate,
+  TmdbOptions,
 } from './types'
 
 export const configAPI = {
@@ -57,6 +59,55 @@ export const configAPI = {
       url: '/config/test-proxy',
       method: 'post',
       data: body,
+    })
+  },
+
+  // TMDB 元数据提供商配置（使用通用接口）
+  // 注：TMDB 配置通过 getOverview() 统一加载，无需单独的 getTmdbConfig 方法
+  
+  createTmdbConfig: (payload: TmdbConfigUpdate): Promise<{ id: number }> => {
+    return request({
+      url: '/config/',
+      method: 'post',
+      data: {
+        type: 'service',
+        service_name: 'tmdb',
+        service_type: 'metadata',
+        name: '默认TMDB',
+        url: payload.url || 'https://api.themoviedb.org/3',
+        api_key: payload.api_key,
+        extra_config: {
+          language: payload.language,
+          region: payload.region,
+          include_adult: payload.include_adult,
+          use_proxy: payload.use_proxy,
+        },
+        is_active: true,
+      },
+    })
+  },
+
+  updateTmdbConfig: (id: number, payload: TmdbConfigUpdate): Promise<{ id: number }> => {
+    return request({
+      url: `/config/${id}`,
+      method: 'put',
+      data: {
+        url: payload.url,
+        api_key: payload.api_key,
+        extra_config: {
+          language: payload.language,
+          region: payload.region,
+          include_adult: payload.include_adult,
+          use_proxy: payload.use_proxy,
+        },
+      },
+    })
+  },
+
+  getTmdbOptions: (): Promise<TmdbOptions> => {
+    return request({
+      url: '/config/tmdb/options',
+      method: 'get',
     })
   },
 }
