@@ -74,7 +74,7 @@ export const configAPI = {
         service_name: 'tmdb',
         service_type: 'metadata',
         name: '默认TMDB',
-        url: 'https://api.themoviedb.org/3',
+        url: payload.url || 'https://api.themoviedb.org/3',
         api_key: payload.api_key,
         extra_config: {
           language: payload.language,
@@ -92,6 +92,7 @@ export const configAPI = {
       url: `/config/${id}`,
       method: 'put',
       data: {
+        url: payload.url,
         api_key: payload.api_key,
         extra_config: {
           language: payload.language,

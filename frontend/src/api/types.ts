@@ -188,6 +188,7 @@ export interface TmdbConfigOut {
 }
 
 export interface TmdbConfigUpdate {
+  url?: string
   api_key?: string | null
   language?: string
   region?: string

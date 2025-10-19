@@ -78,7 +78,7 @@
         <ConfigFormCard title="🎬 TMDB 元数据配置" subtitle="配置 The Movie Database API 用于获取影视元数据">
           <el-form ref="tmdbFormRef" :model="tmdb" :rules="tmdbRules" label-width="120px" class="tmdb-form">
             <el-form-item label="API 地址" prop="apiUrl">
-              <el-input v-model="tmdb.apiUrl" placeholder="https://api.themoviedb.org" disabled />
+              <el-input v-model="tmdb.apiUrl" placeholder="https://api.themoviedb.org/3" />
             </el-form-item>
             <el-form-item label="API 密钥" prop="apiKey">
               <SecretInput v-model="tmdb.apiKey" placeholder="请输入 TMDB API Key" :hint="tmdbHint" />
@@ -262,6 +262,10 @@ const tmdbOptionsLoading = ref(false)
 
 // TMDB 校验规则
 const tmdbRules = reactive<FormRules<TmdbConfig>>({
+  apiUrl: [
+    { required: true, message: '请输入 API 地址', trigger: 'blur' },
+    { pattern: /^https?:\/\/.+/, message: '请输入有效的 URL（http:// 或 https://）', trigger: 'blur' },
+  ],
   apiKey: [
     {
       validator: (_rule, value: string, callback) => {
@@ -281,6 +285,8 @@ const tmdbRules = reactive<FormRules<TmdbConfig>>({
 })
 
 const isTmdbValid = computed(() => 
+  !!tmdb.apiUrl &&
+  /^https?:\/\/.+/.test(tmdb.apiUrl) &&
   !!tmdb.language && 
   !!tmdb.region && 
   (tmdb.apiKey.length >= 8 || tmdbId.value !== null)
@@ -370,6 +376,7 @@ const loadOverview = async () => {
     }
     if (tmdbSvc) {
       tmdbId.value = tmdbSvc.id
+      tmdb.apiUrl = tmdbSvc.url || 'https://api.themoviedb.org/3'
       tmdb.apiKey = ''  // 不回显密钥
       tmdb.language = tmdbSvc.extra_config?.language || 'zh-CN'
       tmdb.region = tmdbSvc.extra_config?.region || 'CN'
@@ -647,6 +654,7 @@ const saveTmdb = async () => {
     tmdbSaving.value = true
     
     const payload: any = {
+      url: tmdb.apiUrl,
       language: tmdb.language,
       region: tmdb.region,
       include_adult: tmdb.includeAdult,
