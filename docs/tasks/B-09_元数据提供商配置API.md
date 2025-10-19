@@ -14,16 +14,18 @@
 ## 二、目标与范围（Scope）
 
 ### 2.1 目标
-- 新增 TMDB 配置的后端 API（CRUD/读取与更新），数据结构与 Sonarr/Prowlarr 保持一致（ServiceConfig + extra_config，`service_type=metadata`）。
+- **统一使用通用配置接口**：TMDB 配置完全复用 Sonarr/Prowlarr 的通用接口（GET/POST/PUT），数据结构一致（ServiceConfig + extra_config，`service_type=metadata`）。
 - 支持一键连接测试（校验 `api_key` 有效性与网络可达性，统一走 `/api/config/test-connection`）。
-- 提供语言/地区选项接口，便于前端渲染。
+- 提供语言/地区选项接口（`GET /api/config/tmdb/options`），便于前端渲染。
 - 敏感信息（`api_key`）加密存储与掩码返回。
+- API URL 支持自定义配置（默认 `https://api.themoviedb.org/3`）。
 - 代理策略：仅使用全局代理，通过 `extra_config.use_proxy` 控制是否启用（不提供每服务代理覆盖）。
 
 ### 2.2 范围
-- API 前缀: `/api/config/*`
-- 模型/存储: 复用 `ServiceConfig`；`service_name=tmdb`、`service_type=metadata`，`extra_config` 持久化 `use_proxy/language/region/include_adult`。
-- 测试连接：统一入口 `POST /api/config/test-connection`，by_body/by_id 均支持 TMDB；by_id 且 `use_proxy=true` 时自动注入“proxy 类型服务”。
+- API 前缀: `/api/config/*` - **复用通用配置接口**
+- 模型/存储: 复用 `ServiceConfig`；`service_name=tmdb`、`service_type=metadata`，`url` 可自定义，`extra_config` 持久化 `use_proxy/language/region/include_adult`。
+- 测试连接：统一入口 `POST /api/config/test-connection`，by_body/by_id 均支持 TMDB；by_id 且 `use_proxy=true` 时自动注入"proxy 类型服务"。
+- **专用端点**：仅保留 `GET /api/config/tmdb/options`（语言/地区选项）。
 
 ### 2.3 非范围（Out of Scope）
 - 自动化编排与 Torznab 端点（B-08）。
@@ -55,17 +57,53 @@
 
 ## 五、API 设计（OpenAPI 概览）
 
-### 5.1 读取配置
-- Method: `GET /api/config/tmdb`
+> **重要变更**：TMDB 配置已统一使用通用 config 接口（与 Sonarr/Prowlarr 一致），不再使用专用端点。
+
+### 5.1 读取配置（通用接口）
+- Method: `GET /api/config/`
+- Query: `?service_name=tmdb` (可选，用于过滤)
 - Auth: 需登录
 - 200 示例：
 ```json
 {
+  "code": 200,
+  "message": "OK",
+  "data": {
+    "services": [
+      {
+        "id": 1,
+        "service_name": "tmdb",
+        "service_type": "metadata",
+        "name": "默认TMDB",
+        "url": "https://api.themoviedb.org/3",
+        "api_key_masked": "ABCD****WXYZ",
+        "extra_config": {
+          "use_proxy": false,
+          "language": "zh-CN",
+          "region": "CN",
+          "include_adult": false
+        },
+        "is_active": true,
+        "created_at": "2025-10-19T...",
+        "updated_at": "2025-10-19T..."
+      }
+    ],
+    "kv": []
+  }
+}
+```
+
+### 5.2 创建配置（通用接口）
+- Method: `POST /api/config/`
+- 请求体：
+```json
+{
+  "type": "service",
   "service_name": "tmdb",
   "service_type": "metadata",
   "name": "默认TMDB",
   "url": "https://api.themoviedb.org/3",
-  "api_key_masked": "ABCD****WXYZ",
+  "api_key": "<real_api_key>",
   "extra_config": {
     "use_proxy": false,
     "language": "zh-CN",
@@ -75,15 +113,14 @@
   "is_active": true
 }
 ```
+- 200：`{ "code": 200, "message": "OK", "data": { "id": 1 } }`
+- 校验：`url` 必填，`language/region` 在支持列表，`extra_config.use_proxy` 为布尔
 
-### 5.2 更新配置
-- Method: `PUT /api/config/tmdb`
-- 请求体（示例，`api_key` 可选）：
+### 5.3 更新配置（通用接口）
+- Method: `PUT /api/config/{id}`
+- 请求体（所有字段可选，仅传递需要更新的字段）：
 ```json
 {
-  "service_name": "tmdb",
-  "service_type": "metadata",
-  "name": "默认TMDB",
   "url": "https://api.themoviedb.org/3",
   "api_key": "<real_api_key_optional>",
   "extra_config": {
@@ -91,43 +128,73 @@
     "language": "zh-CN",
     "region": "CN",
     "include_adult": false
-  },
-  "is_active": true
+  }
 }
 ```
-- 200：与 5.1 相同（`api_key` 返回掩码）
-- 校验：`language/region` 在支持列表；`extra_config.use_proxy` 为布尔
+- 200：`{ "code": 200, "message": "OK", "data": { "id": 1 } }`
+- 注：未传 `api_key` 时保留原密钥
 
-### 5.3 连接测试（统一接口）
+### 5.4 连接测试（统一接口）
 - Method: `POST /api/config/test-connection`
-- 模式：
-  - by_body：`{ service_name: "tmdb", api_key?, proxy? }`（未传 proxy 则直连）
-  - by_id：`{ id }`（若 `use_proxy=true` 自动注入启用中的 `proxy` 服务）
+- 模式1 - by_body（新配置或修改密钥）：
+```json
+{
+  "mode": "by_body",
+  "service_name": "tmdb",
+  "url": "https://api.themoviedb.org/3",
+  "api_key": "<real_api_key>",
+  "proxy": {
+    "http://": "http://127.0.0.1:7890",
+    "https://": "http://127.0.0.1:7890"
+  }
+}
+```
+- 模式2 - by_id（已保存配置）：
+```json
+{
+  "mode": "by_id",
+  "id": 1
+}
+```
+  - 后端自动从数据库读取 `api_key` 和配置
+  - 若 `extra_config.use_proxy=true`，自动注入全局代理配置
 - 成功示例：
 ```json
-{ "ok": true, "latency_ms": 132, "diagnosis": "ok", "endpoint": "/configuration" }
+{
+  "code": 200,
+  "message": "OK",
+  "data": {
+    "ok": true,
+    "details": "TMDB API 连接成功"
+  }
+}
 ```
 
-### 5.4 选项列表（语言/地区）
+### 5.5 选项列表（语言/地区）- TMDB 专用端点
 - Method: `GET /api/config/tmdb/options`
+- Auth: 需登录
 - 200 示例：
 ```json
 {
-  "languages": [
-    { "code": "zh-CN", "label": "中文（简体）" },
-    { "code": "zh-TW", "label": "中文（繁體）" },
-    { "code": "en-US", "label": "English (US)" }
-  ],
-  "regions": [
-    { "code": "CN", "label": "中国大陆" },
-    { "code": "HK", "label": "中国香港" },
-    { "code": "TW", "label": "中国台湾" },
-    { "code": "US", "label": "United States" }
-  ]
+  "code": 200,
+  "message": "OK",
+  "data": {
+    "languages": [
+      { "code": "zh-CN", "label": "中文（简体）" },
+      { "code": "zh-TW", "label": "中文（繁體）" },
+      { "code": "en-US", "label": "English (US)" }
+    ],
+    "regions": [
+      { "code": "CN", "label": "中国大陆" },
+      { "code": "HK", "label": "中国香港" },
+      { "code": "TW", "label": "中国台湾" },
+      { "code": "US", "label": "United States" }
+    ]
+  }
 }
 ```
 
-### 5.5 错误码与语义
+### 5.6 错误码与语义
 - 400：参数非法（枚举/布尔非法）
 - 401：未认证或权限不足
 - 408：连接测试超时
@@ -136,11 +203,22 @@
 ---
 
 ## 六、数据模型（当前仓库）
-- `ServiceConfig`（外部服务）
-  - `service_name: 'tmdb'`，`service_type: 'metadata'`，`url`
-  - `api_key`（加密）
-  - `extra_config`（JSON）：`use_proxy`、`language`、`region`、`include_adult`
+- `ServiceConfig`（外部服务）- 完全复用通用模型
+  - `id`：配置 ID
+  - `service_name: 'tmdb'`：服务标识
+  - `service_type: 'metadata'`：服务类型
+  - `name`：配置名称（默认："默认TMDB"）
+  - `url`：API 地址（默认："https://api.themoviedb.org/3"，**支持自定义**）
+  - `api_key`（加密存储，返回时掩码）
+  - `extra_config`（JSON）：
+    - `use_proxy: boolean` - 是否启用全局代理
+    - `language: string` - 语言代码（如 "zh-CN"）
+    - `region: string` - 地区代码（如 "CN"）
+    - `include_adult: boolean` - 是否包含成人内容
+  - `is_active: boolean`：是否启用
+  - `created_at`, `updated_at`：时间戳
 - 加密：`app/utils/encryption.py`
+- 掩码策略：前4位+中间星号+后4位（如 "ABCD****WXYZ"）
 
 ---
 
@@ -153,13 +231,15 @@
 ---
 
 ## 八、实现计划（Tasks）
-1) 定义后端 Pydantic Schema（读/写/选项）  
-2) 定义路由与处理器（GET/PUT tmdb，统一 test-connection 支持 TMDB，GET options）  
-3) 放宽/扩展枚举：`service_name=tmdb`、`service_type=metadata`  
-4) 客户端层接入：`use_proxy`（启用全局代理）、`language/region/include_adult`  
-5) 日志脱敏与错误映射（400/401/408/502/503）  
-6) 单元测试与集成测试  
-7) 前端 FE-06 联调（表单/掩码展示/测试按钮）
+1) ✅ 放宽/扩展枚举：`service_name=tmdb`、`service_type=metadata`  
+2) ✅ **统一使用通用接口**：删除专用 GET/PUT 端点，复用 ServiceConfig 通用 CRUD  
+3) ✅ 保留选项接口：`GET /api/config/tmdb/options`（语言/地区列表）  
+4) ✅ 统一 test-connection 支持 TMDB（by_body/by_id 双模式）  
+5) ✅ 客户端层接入：`use_proxy`（启用全局代理）、`language/region/include_adult`  
+6) ✅ 日志脱敏与错误映射（400/401/408/502/503）  
+7) ✅ 前端 FE-06 联调（表单/掩码展示/测试按钮/by_id 测试模式）  
+8) ✅ 性能优化：前端统一加载所有配置，减少 API 请求  
+9) [ ] 单元测试与集成测试用例
 
 ---
 
@@ -193,16 +273,26 @@
 
 ## 十二、变更记录
 - v0.1（2025-10-18）：创建；统一接入 `ServiceConfig + use_proxy`，测试走 `test-connection`。
+- v0.2（2025-10-19）：**架构重构**；删除专用 GET/PUT 端点，完全统一到通用配置接口；保留选项端点；支持 API URL 可编辑；实现 by_id 测试模式；优化前端加载流程。
 
 ---
 
 ## 十三、进度清单（Checklist）
 - [x] 创建分支 `feature/B-09-metadata-provider-config`（2025-10-18）
 - [x] 文档对齐（结构、数据模型、接口示例）（2025-10-18）
-- [x] 后端端点与路由（GET/PUT tmdb，统一 test-connection 支持 TMDB，GET options）（2025-10-18）
-- [x] 放宽枚举（`service_name=tmdb`、`service_type=metadata`）；完善 Swagger 示例（2025-10-18）
-- [x] 前后端数据契约对齐（添加id字段，修复选项结构，完善返回数据）（2025-10-19）
-- [x] 编写前后端联调测试指南（2025-10-19）
+- [x] 后端端点与路由（统一 test-connection 支持 TMDB，GET options）（2025-10-18）
+- [x] 放宽枚举（`service_name=tmdb`、`service_type=metadata`）（2025-10-18）
+- [x] **架构重构：统一使用通用配置接口**（2025-10-19）
+  - 删除专用 GET/PUT `/api/config/tmdb` 端点
+  - 复用通用 GET/POST/PUT 接口
+  - 保留 GET `/api/config/tmdb/options` 选项端点
+- [x] 前后端数据契约对齐（添加id字段，修复选项结构）（2025-10-19）
+- [x] 前端实现（FE-06）
+  - 表单 UI 与布局
+  - 掩码显示与敏感信息处理
+  - by_id 测试模式（已保存配置）
+  - 统一加载优化（减少 API 请求）
+  - API URL 可编辑功能
 - [ ] 单元测试与集成测试用例
 - [ ] 手动功能测试与验收
 
