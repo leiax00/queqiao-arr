@@ -96,7 +96,7 @@ export interface ConnectionTestResult {
 
 // ---- B-02 配置模块契约（FE-05 使用） ----
 
-export type ServiceName = 'sonarr' | 'prowlarr' | 'proxy'
+export type ServiceName = 'sonarr' | 'prowlarr' | 'proxy' | 'tmdb'
 
 export interface ServiceConfigOut {
   id: number

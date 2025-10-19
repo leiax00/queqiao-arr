@@ -5,7 +5,6 @@ import type {
   ServiceConfigUpdate,
   TestConnectionRequest,
   TestConnectionResponse,
-  TmdbConfigOut,
   TmdbConfigUpdate,
   TmdbOptions,
 } from './types'
@@ -64,29 +63,8 @@ export const configAPI = {
   },
 
   // TMDB 元数据提供商配置（使用通用接口）
-  getTmdbConfig: async (): Promise<TmdbConfigOut | null> => {
-    const overview: OverviewResponse = await request({
-      url: '/config/',
-      method: 'get',
-      params: { service_name: 'tmdb' },
-    })
-    const tmdbService = overview.services.find(s => s.service_name === 'tmdb')
-    if (!tmdbService) {
-      return null
-    }
-    // 转换为 TmdbConfigOut 格式
-    return {
-      id: tmdbService.id,
-      language: tmdbService.extra_config?.language || 'zh-CN',
-      region: tmdbService.extra_config?.region || 'CN',
-      include_adult: tmdbService.extra_config?.include_adult || false,
-      use_proxy: tmdbService.extra_config?.use_proxy || false,
-      api_key_masked: tmdbService.api_key_masked,
-      created_at: tmdbService.created_at,
-      updated_at: tmdbService.updated_at,
-    }
-  },
-
+  // 注：TMDB 配置通过 getOverview() 统一加载，无需单独的 getTmdbConfig 方法
+  
   createTmdbConfig: (payload: TmdbConfigUpdate): Promise<{ id: number }> => {
     return request({
       url: '/config/',
@@ -105,7 +83,7 @@ export const configAPI = {
           use_proxy: payload.use_proxy,
         },
         is_active: true,
-      } as ServiceConfigCreate,
+      },
     })
   },
 
@@ -121,7 +99,7 @@ export const configAPI = {
           include_adult: payload.include_adult,
           use_proxy: payload.use_proxy,
         },
-      } as ServiceConfigUpdate,
+      },
     })
   },
 

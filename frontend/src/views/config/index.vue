@@ -324,10 +324,11 @@ const loadOverview = async () => {
   try {
     const data: OverviewResponse = await configAPI.getOverview()
     // 服务配置
-    const svc = (name: 'sonarr' | 'prowlarr' | 'proxy') => data.services.find(s => s.service_name === name) || null
+    const svc = (name: 'sonarr' | 'prowlarr' | 'proxy' | 'tmdb') => data.services.find(s => s.service_name === name) || null
     const sonarrSvc = svc('sonarr')
     const prowlarrSvc = svc('prowlarr')
     const proxySvc = svc('proxy')
+    const tmdbSvc = svc('tmdb')
 
     if (sonarrSvc) {
       sonarrId.value = sonarrSvc.id
@@ -367,6 +368,22 @@ const loadOverview = async () => {
       }
       Object.assign(proxyInitial, proxy)
     }
+    if (tmdbSvc) {
+      tmdbId.value = tmdbSvc.id
+      tmdb.apiKey = ''  // 不回显密钥
+      tmdb.language = tmdbSvc.extra_config?.language || 'zh-CN'
+      tmdb.region = tmdbSvc.extra_config?.region || 'CN'
+      tmdb.includeAdult = tmdbSvc.extra_config?.include_adult || false
+      tmdb.useProxy = tmdbSvc.extra_config?.use_proxy || false
+      
+      if (tmdbSvc.api_key_masked) {
+        tmdbHint.value = `已保存：${tmdbSvc.api_key_masked}`
+      } else {
+        tmdbHint.value = '已保存的密钥不会回显明文'
+      }
+      
+      Object.assign(tmdbInitial, tmdb)
+    }
   } catch (e) {
     ElMessage.error('加载配置失败')
   }
@@ -375,7 +392,6 @@ const loadOverview = async () => {
 onMounted(() => {
   loadOverview()
   loadTmdbOptions()
-  loadTmdbConfig()
 })
 
 // 刷新配置
@@ -383,10 +399,7 @@ const refreshing = ref(false)
 const refreshConfigs = async () => {
   try {
     refreshing.value = true
-    await Promise.all([
-      loadOverview(),
-      loadTmdbConfig(),
-    ])
+    await loadOverview()
     ElMessage.success('配置已刷新')
   } finally {
     refreshing.value = false
@@ -627,30 +640,6 @@ const loadTmdbOptions = async () => {
   }
 }
 
-const loadTmdbConfig = async () => {
-  try {
-    const data = await configAPI.getTmdbConfig()
-    if (data && data.id) {
-      tmdbId.value = data.id
-      tmdb.apiKey = ''  // 不回显密钥
-      tmdb.language = data.language || 'zh-CN'
-      tmdb.region = data.region || 'CN'
-      tmdb.includeAdult = data.include_adult || false
-      tmdb.useProxy = data.use_proxy || false
-      
-      if (data.api_key_masked) {
-        tmdbHint.value = `已保存：${data.api_key_masked}`
-      } else {
-        tmdbHint.value = '已保存的密钥不会回显明文'
-      }
-      
-      Object.assign(tmdbInitial, tmdb)
-    }
-  } catch (e) {
-    // 如果未配置，不显示错误（null 是正常的）
-    console.log('TMDB 配置未找到，使用默认值')
-  }
-}
 
 const saveTmdb = async () => {
   try {
@@ -680,7 +669,7 @@ const saveTmdb = async () => {
     }
     
     // 保存成功后重新加载配置以获取最新的掩码
-    await loadTmdbConfig()
+    await loadOverview()
     
     ElMessage.success('TMDB 配置保存成功')
   } catch (e: any) {
