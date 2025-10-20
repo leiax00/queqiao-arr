@@ -205,13 +205,12 @@ watch(
 
 <style scoped lang="scss">
 .form-tip {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-  margin-top: 4px;
+  @apply text-xs mt-1;
+  @apply text-gray-500 dark:text-gray-400;
 }
 
 :deep(.el-form-item__extra) {
-  margin-top: 0;
+  @apply mt-0;
 }
 </style>
 

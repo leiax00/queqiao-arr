@@ -167,87 +167,61 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .dict-type-list {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  background: var(--el-bg-color);
-  border-radius: 8px;
-  padding: 16px;
+  @apply macaron-card;
+  @apply flex flex-col h-full p-4;
 
   .header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
+    @apply flex justify-between items-center mb-4;
 
     .title {
-      margin: 0;
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--el-text-color-primary);
+      @apply m-0 text-base font-semibold;
+      @apply text-gray-900 dark:text-white;
     }
   }
 
   .loading-skeleton {
-    padding: 16px;
+    @apply p-4;
   }
 
   .type-list {
-    flex: 1;
-    overflow-y: auto;
+    @apply flex-1 overflow-y-auto;
 
     .type-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px;
-      margin-bottom: 8px;
-      border-radius: 6px;
-      border: 1px solid var(--el-border-color-lighter);
-      background: var(--el-bg-color-overlay);
-      cursor: pointer;
-      transition: all 0.2s;
+      @apply flex justify-between items-center p-3 mb-2 rounded-md cursor-pointer;
+      @apply border border-gray-200 dark:border-gray-700;
+      @apply bg-white dark:bg-gray-800/50;
+      @apply transition-all duration-200;
 
       &:hover {
-        border-color: var(--el-color-primary);
-        background: var(--el-color-primary-light-9);
+        @apply border-primary-500;
+        @apply bg-primary-50 dark:bg-primary-900/20;
       }
 
       &.active {
-        border-color: var(--el-color-primary);
-        background: var(--el-color-primary-light-9);
+        @apply border-primary-500;
+        @apply bg-primary-50 dark:bg-primary-900/30;
       }
 
       .type-info {
-        flex: 1;
-        min-width: 0;
+        @apply flex-1 min-w-0;
 
         .type-name {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          font-size: 14px;
-          font-weight: 500;
-          color: var(--el-text-color-primary);
-          margin-bottom: 4px;
+          @apply flex items-center gap-2 text-sm font-medium mb-1;
+          @apply text-gray-900 dark:text-white;
         }
 
         .type-code {
-          font-size: 12px;
-          color: var(--el-text-color-secondary);
-          font-family: monospace;
+          @apply text-xs font-mono;
+          @apply text-gray-600 dark:text-gray-400;
         }
       }
 
       .type-actions {
-        display: flex;
-        gap: 4px;
-        opacity: 0;
-        transition: opacity 0.2s;
+        @apply flex gap-1 opacity-0 transition-opacity;
       }
 
       &:hover .type-actions {
-        opacity: 1;
+        @apply opacity-100;
       }
     }
   }

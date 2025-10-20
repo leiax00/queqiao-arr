@@ -269,79 +269,52 @@ watch(
 
 <style scoped lang="scss">
 .dict-item-table {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  background: var(--el-bg-color);
-  border-radius: 8px;
-  padding: 16px;
+  @apply macaron-card;
+  @apply flex flex-col h-full p-4;
 
   .header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
+    @apply flex justify-between items-center mb-4;
 
     .title {
-      margin: 0;
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--el-text-color-primary);
-      display: flex;
-      align-items: center;
-      gap: 12px;
+      @apply m-0 text-base font-semibold flex items-center gap-3;
+      @apply text-gray-900 dark:text-white;
 
       .type-tag {
-        font-size: 14px;
-        font-weight: 400;
-        color: var(--el-color-primary);
-        padding: 2px 12px;
-        background: var(--el-color-primary-light-9);
-        border-radius: 4px;
+        @apply text-sm font-normal px-3 py-0.5 rounded;
+        @apply text-primary-600 dark:text-primary-400;
+        @apply bg-primary-50 dark:bg-primary-900/30;
       }
     }
 
     .actions {
-      display: flex;
-      gap: 8px;
+      @apply flex gap-2;
     }
   }
 
   .table-container {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
+    @apply flex-1 flex flex-col overflow-hidden;
 
     .item-code {
-      font-family: 'Courier New', monospace;
-      font-size: 12px;
-      color: var(--el-color-primary);
-      background: var(--el-color-primary-light-9);
-      padding: 2px 6px;
-      border-radius: 3px;
+      @apply font-mono text-xs px-1.5 py-0.5 rounded;
+      @apply text-primary-600 dark:text-primary-400;
+      @apply bg-primary-50 dark:bg-primary-900/30;
     }
 
     .extra-data {
       .extra-preview {
-        font-family: 'Courier New', monospace;
-        font-size: 12px;
-        color: var(--el-text-color-regular);
-        cursor: help;
+        @apply font-mono text-xs cursor-help;
+        @apply text-gray-700 dark:text-gray-300;
       }
     }
 
     .text-secondary {
-      color: var(--el-text-color-secondary);
+      @apply text-gray-500 dark:text-gray-400;
     }
   }
 
   .pagination {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: 16px;
-    padding-top: 16px;
-    border-top: 1px solid var(--el-border-color-lighter);
+    @apply flex justify-end mt-4 pt-4;
+    @apply border-t border-gray-200 dark:border-gray-700;
   }
 }
 </style>

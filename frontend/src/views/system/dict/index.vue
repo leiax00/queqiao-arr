@@ -31,46 +31,32 @@ const handleTypeSelect = (type: DictType) => {
 
 <style scoped lang="scss">
 .dict-management {
-  height: 100%;
-  padding: 20px;
-  background: var(--el-bg-color-page);
+  @apply h-full p-5;
 
   .dict-container {
-    display: flex;
-    gap: 20px;
-    height: 100%;
+    @apply flex gap-5 h-full;
     max-height: calc(100vh - 100px);
 
     .left-panel {
-      width: 320px;
-      min-width: 320px;
-      max-width: 400px;
-      height: 100%;
-      overflow: hidden;
+      @apply w-80 min-w-80 max-w-96 h-full overflow-hidden;
     }
 
     .right-panel {
-      flex: 1;
-      min-width: 0;
-      height: 100%;
-      overflow: hidden;
+      @apply flex-1 min-w-0 h-full overflow-hidden;
     }
 
     // 响应式布局：小屏幕改为上下堆叠
     @media (max-width: 768px) {
-      flex-direction: column;
+      @apply flex-col;
       max-height: none;
 
       .left-panel {
-        width: 100%;
-        max-width: none;
-        height: auto;
+        @apply w-full max-w-none h-auto;
         max-height: 400px;
       }
 
       .right-panel {
-        width: 100%;
-        height: auto;
+        @apply w-full h-auto;
         min-height: 500px;
       }
     }
