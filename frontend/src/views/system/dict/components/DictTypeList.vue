@@ -169,6 +169,11 @@ onMounted(() => {
 .dict-type-list {
   @apply macaron-card;
   @apply flex flex-col h-full p-4;
+  
+  // 移除卡片悬停浮动效果，保持稳定
+  &:hover {
+    @apply shadow-soft transform-none;
+  }
 
   .header {
     @apply flex justify-between items-center mb-4;
@@ -222,6 +227,57 @@ onMounted(() => {
 
       &:hover .type-actions {
         @apply opacity-100;
+      }
+    }
+  }
+
+  // Element Plus 按钮样式优化 - 统一按钮风格
+  :deep(.el-button) {
+    // text 类型按钮样式
+    &.is-text {
+      @apply font-medium;
+      
+      &:not(.is-disabled) {
+        &:hover {
+          @apply bg-light-card dark:bg-dark-card;
+        }
+        
+        &:active {
+          opacity: 0.8;
+        }
+      }
+      
+      // danger 文本按钮
+      &.el-button--danger {
+        color: #ef4444;
+        
+        .dark & {
+          color: #f87171;
+        }
+        
+        &:hover {
+          background-color: #fef2f2 !important;
+          
+          .dark & {
+            background-color: rgba(239, 68, 68, 0.1) !important;
+          }
+        }
+      }
+    }
+  }
+
+  // Element Plus Tag 组件样式优化 - 使用 F-01 配色方案
+  :deep(.el-tag) {
+    @apply border-0 font-medium;
+    
+    // 信息状态 - 灰色
+    &.el-tag--info {
+      background-color: #f1f5f9 !important; // slate-100
+      color: #475569 !important; // slate-600
+      
+      .dark & {
+        background-color: rgba(148, 163, 184, 0.2) !important; // slate-400 with opacity
+        color: #cbd5e1 !important; // slate-300
       }
     }
   }

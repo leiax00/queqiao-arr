@@ -49,7 +49,6 @@
       <el-table
         v-loading="loading"
         :data="itemList"
-        stripe
         border
         style="width: 100%"
       >
@@ -90,7 +89,7 @@
           </template>
         </el-table-column>
         <el-table-column prop="remark" label="备注" min-width="200" show-overflow-tooltip />
-        <el-table-column label="操作" width="150" fixed="right" align="center">
+        <el-table-column label="操作" width="180" fixed="right" align="center">
           <template #default="{ row }">
             <el-button
               text
@@ -271,6 +270,11 @@ watch(
 .dict-item-table {
   @apply macaron-card;
   @apply flex flex-col h-full p-4;
+  
+  // 移除卡片悬停浮动效果，避免表格闪动
+  &:hover {
+    @apply shadow-soft transform-none;
+  }
 
   .header {
     @apply flex justify-between items-center mb-4;
@@ -295,7 +299,7 @@ watch(
     @apply flex-1 flex flex-col overflow-hidden;
 
     .item-code {
-      @apply font-mono text-xs px-1.5 py-0.5 rounded;
+      @apply font-mono text-xs px-1.5 py-1.5 rounded;
       @apply text-primary-600 dark:text-primary-400;
       @apply bg-primary-50 dark:bg-primary-900/30;
     }
@@ -310,11 +314,210 @@ watch(
     .text-secondary {
       @apply text-gray-500 dark:text-gray-400;
     }
+
+    // Element Plus 表格样式优化 - 参考 F-01 主题配色方案
+    :deep(.el-table) {
+      @apply bg-transparent;
+      
+      // 自定义边框颜色变量 - 统一边框颜色
+      --el-table-border-color: #e2e8f0 !important; // 浅色主题边框
+      
+      // 暗色模式下的边框颜色
+      .dark & {
+        --el-table-border-color: #334155 !important;
+      }
+
+      // 表头样式 - 使用卡片背景色
+      th.el-table__cell {
+        @apply bg-light-card dark:bg-dark-card;
+        @apply text-light-text dark:text-dark-text;
+        @apply font-semibold text-sm;
+        border-bottom: 2px solid #0ea5e9 !important; // 主色调分隔线
+        
+        .dark & {
+          border-bottom-color: #0284c7 !important;
+        }
+      }
+
+      // 数据单元格样式 - 保持边框一致性
+      td.el-table__cell {
+        @apply bg-white dark:bg-dark-bg;
+        @apply text-light-text dark:text-dark-text;
+        @apply text-sm;
+        border-color: var(--el-table-border-color) !important;
+      }
+
+      // 行样式 - 悬停时只改变背景色，不影响边框
+      .el-table__row {
+        @apply transition-colors duration-150;
+
+        &:hover > td {
+          @apply bg-light-card dark:bg-dark-card;
+          border-color: var(--el-table-border-color) !important;
+        }
+      }
+
+      // 空状态文本
+      .el-table__empty-text {
+        @apply text-light-text-secondary dark:text-dark-text-secondary;
+      }
+    }
   }
 
   .pagination {
     @apply flex justify-end mt-4 pt-4;
     @apply border-t border-gray-200 dark:border-gray-700;
+
+    // Element Plus 分页组件样式优化 - 使用 F-01 配色方案
+    :deep(.el-pagination) {
+      // 按钮样式
+      .btn-prev,
+      .btn-next,
+      .el-pager li {
+        @apply bg-white dark:bg-dark-card;
+        @apply text-light-text dark:text-dark-text;
+        @apply border border-light-border dark:border-dark-border;
+        
+        &:hover:not(.is-disabled) {
+          @apply text-primary-600 dark:text-primary-400;
+        }
+        
+        &.is-active {
+          @apply bg-primary-500 dark:bg-primary-600;
+          @apply text-white;
+          @apply border-primary-500 dark:border-primary-600;
+        }
+      }
+      
+      // 输入框样式
+      .el-input__wrapper {
+        @apply bg-white dark:bg-dark-card;
+        @apply border-light-border dark:border-dark-border;
+        box-shadow: none !important;
+        
+        &:hover,
+        &.is-focus {
+          @apply border-primary-500 dark:border-primary-400;
+        }
+        
+        .el-input__inner {
+          @apply text-light-text dark:text-dark-text;
+          @apply bg-transparent;
+        }
+      }
+      
+      // 选择器样式
+      .el-select .el-input__wrapper {
+        @apply bg-white dark:bg-dark-card;
+      }
+      
+      // 文本样式
+      .el-pagination__total,
+      .el-pagination__jump {
+        @apply text-light-text-secondary dark:text-dark-text-secondary;
+      }
+    }
+  }
+
+  // Element Plus 按钮样式优化 - 统一按钮风格
+  :deep(.el-button) {
+    // text 类型按钮样式
+    &.is-text {
+      @apply font-medium;
+      
+      &:not(.is-disabled) {
+        &:hover {
+          @apply bg-light-card dark:bg-dark-card;
+        }
+        
+        &:active {
+          opacity: 0.8;
+        }
+      }
+      
+      // primary 文本按钮
+      &.el-button--primary {
+        color: #0ea5e9;
+        
+        .dark & {
+          color: #38bdf8;
+        }
+        
+        &:hover {
+          background-color: #f0f9ff !important;
+          
+          .dark & {
+            background-color: rgba(14, 165, 233, 0.1) !important;
+          }
+        }
+      }
+      
+      // danger 文本按钮
+      &.el-button--danger {
+        color: #ef4444;
+        
+        .dark & {
+          color: #f87171;
+        }
+        
+        &:hover {
+          background-color: #fef2f2 !important;
+          
+          .dark & {
+            background-color: rgba(239, 68, 68, 0.1) !important;
+          }
+        }
+      }
+    }
+  }
+
+  // Element Plus Tag 组件样式优化 - 使用 F-01 配色方案
+  :deep(.el-tag) {
+    @apply border-0 font-medium;
+    
+    // 成功状态 - 翠绿色
+    &.el-tag--success {
+      background-color: #dcfce7 !important; // success-100
+      color: #15803d !important; // success-700
+      
+      .dark & {
+        background-color: rgba(34, 197, 94, 0.2) !important; // success-500 with opacity
+        color: #86efac !important; // success-300
+      }
+    }
+    
+    // 信息状态 - 灰色
+    &.el-tag--info {
+      background-color: #f1f5f9 !important; // slate-100
+      color: #475569 !important; // slate-600
+      
+      .dark & {
+        background-color: rgba(148, 163, 184, 0.2) !important; // slate-400 with opacity
+        color: #cbd5e1 !important; // slate-300
+      }
+    }
+    
+    // 警告状态 - 琥珀色
+    &.el-tag--warning {
+      background-color: #fef3c7 !important; // warning-100
+      color: #b45309 !important; // warning-700
+      
+      .dark & {
+        background-color: rgba(245, 158, 11, 0.2) !important; // warning-500 with opacity
+        color: #fcd34d !important; // warning-300
+      }
+    }
+    
+    // 危险状态 - 玫瑰红
+    &.el-tag--danger {
+      background-color: #fee2e2 !important; // error-100
+      color: #b91c1c !important; // error-700
+      
+      .dark & {
+        background-color: rgba(239, 68, 68, 0.2) !important; // error-500 with opacity
+        color: #fca5a5 !important; // error-300
+      }
+    }
   }
 }
 </style>
