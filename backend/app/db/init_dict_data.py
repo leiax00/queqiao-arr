@@ -3,7 +3,7 @@
 """
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.db import crud_dict
+from app.db import crud_system_dict
 import json
 
 
@@ -15,7 +15,7 @@ async def init_dict_data(db: AsyncSession) -> None:
         db: 数据库会话
     """
     # 检查是否已有数据
-    existing_types, _ = await crud_dict.get_dict_types(db, page=1, page_size=1)
+    existing_types, _ = await crud_system_dict.get_dict_types(db, page=1, page_size=1)
     if existing_types:
         print("⏭️  字典数据已存在，跳过初始化")
         return
@@ -23,7 +23,7 @@ async def init_dict_data(db: AsyncSession) -> None:
     print("📝 开始初始化字典数据...")
     
     # 1. 创建语言字典类型
-    language_type = await crud_dict.create_dict_type(
+    language_type = await crud_system_dict.create_dict_type(
         db,
         code="language",
         name="语言选项",
@@ -51,7 +51,7 @@ async def init_dict_data(db: AsyncSession) -> None:
     ]
     
     for lang in languages:
-        await crud_dict.create_dict_item(
+        await crud_system_dict.create_dict_item(
             db,
             dict_type_code="language",
             **lang,
@@ -61,7 +61,7 @@ async def init_dict_data(db: AsyncSession) -> None:
     print(f"  ✓ 创建语言字典类型及 {len(languages)} 个选项")
     
     # 2. 创建地区字典类型
-    region_type = await crud_dict.create_dict_type(
+    region_type = await crud_system_dict.create_dict_type(
         db,
         code="region",
         name="地区选项",
@@ -92,7 +92,7 @@ async def init_dict_data(db: AsyncSession) -> None:
     ]
     
     for region in regions:
-        await crud_dict.create_dict_item(
+        await crud_system_dict.create_dict_item(
             db,
             dict_type_code="region",
             **region,
@@ -102,7 +102,7 @@ async def init_dict_data(db: AsyncSession) -> None:
     print(f"  ✓ 创建地区字典类型及 {len(regions)} 个选项")
     
     # 3. 创建质量标签字典类型
-    quality_type = await crud_dict.create_dict_type(
+    quality_type = await crud_system_dict.create_dict_type(
         db,
         code="quality",
         name="质量标签",
@@ -130,7 +130,7 @@ async def init_dict_data(db: AsyncSession) -> None:
     ]
     
     for quality in qualities:
-        await crud_dict.create_dict_item(
+        await crud_system_dict.create_dict_item(
             db,
             dict_type_code="quality",
             **quality,

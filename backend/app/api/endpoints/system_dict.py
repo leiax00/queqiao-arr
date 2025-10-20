@@ -8,9 +8,9 @@ from typing import Optional
 
 from app.db.database import get_db
 from app.api.endpoints.auth import get_current_user, get_current_superuser
-from app.db import crud_dict
+from app.db import crud_system_dict
 from app.utils import success_response, error_response
-from app.api.schemas.dict import (
+from app.api.schemas.system_dict import (
     DictTypeOut,
     DictTypeCreate,
     DictTypeUpdate,
@@ -42,7 +42,7 @@ async def get_dict_types(
     current_user=Depends(get_current_user),
 ):
     """获取字典类型列表"""
-    items, total = await crud_dict.get_dict_types(
+    items, total = await crud_system_dict.get_dict_types(
         db,
         is_active=is_active,
         page=page,
@@ -73,11 +73,11 @@ async def create_dict_type(
 ):
     """创建字典类型"""
     # 检查编码是否重复
-    if await crud_dict.is_dict_type_code_duplicate(db, code=data.code):
+    if await crud_system_dict.is_dict_type_code_duplicate(db, code=data.code):
         return error_response(code=409, message=f"字典类型编码 '{data.code}' 已存在")
     
     # 创建字典类型
-    item = await crud_dict.create_dict_type(
+    item = await crud_system_dict.create_dict_type(
         db,
         code=data.code,
         name=data.name,
@@ -102,14 +102,14 @@ async def update_dict_type(
 ):
     """更新字典类型"""
     # 查询字典类型
-    dict_type = await crud_dict.get_dict_type_by_id(db, type_id=type_id)
+    dict_type = await crud_system_dict.get_dict_type_by_id(db, type_id=type_id)
     if not dict_type:
         return error_response(code=404, message="字典类型不存在")
     
     # 更新字典类型
     update_data = data.model_dump(exclude_unset=True)
     if update_data:
-        dict_type = await crud_dict.update_dict_type(db, obj=dict_type, data=update_data)
+        dict_type = await crud_system_dict.update_dict_type(db, obj=dict_type, data=update_data)
     
     return success_response(DictTypeOut.model_validate(dict_type).model_dump())
 
@@ -127,12 +127,12 @@ async def delete_dict_type(
 ):
     """删除字典类型"""
     # 查询字典类型
-    dict_type = await crud_dict.get_dict_type_by_id(db, type_id=type_id)
+    dict_type = await crud_system_dict.get_dict_type_by_id(db, type_id=type_id)
     if not dict_type:
         return error_response(code=404, message="字典类型不存在")
     
     # 删除字典类型（级联删除字典项）
-    await crud_dict.delete_dict_type(db, obj=dict_type)
+    await crud_system_dict.delete_dict_type(db, obj=dict_type)
     
     return success_response({"deleted": True})
 
@@ -156,12 +156,12 @@ async def get_dict_items(
 ):
     """获取字典项列表"""
     # 验证字典类型是否存在
-    dict_type = await crud_dict.get_dict_type_by_code(db, code=dict_type_code)
+    dict_type = await crud_system_dict.get_dict_type_by_code(db, code=dict_type_code)
     if not dict_type:
         return error_response(code=404, message=f"字典类型 '{dict_type_code}' 不存在")
     
     # 获取字典项列表
-    items, total = await crud_dict.get_dict_items(
+    items, total = await crud_system_dict.get_dict_items(
         db,
         dict_type_code=dict_type_code,
         is_active=is_active,
@@ -192,7 +192,7 @@ async def get_dict_item(
     current_user=Depends(get_current_user),
 ):
     """获取字典项详情"""
-    item = await crud_dict.get_dict_item_by_id(db, item_id=item_id)
+    item = await crud_system_dict.get_dict_item_by_id(db, item_id=item_id)
     if not item:
         return error_response(code=404, message="字典项不存在")
     
@@ -213,12 +213,12 @@ async def create_dict_item(
 ):
     """创建字典项"""
     # 验证字典类型是否存在
-    dict_type = await crud_dict.get_dict_type_by_code(db, code=data.dict_type_code)
+    dict_type = await crud_system_dict.get_dict_type_by_code(db, code=data.dict_type_code)
     if not dict_type:
         return error_response(code=404, message=f"字典类型 '{data.dict_type_code}' 不存在")
     
     # 检查编码是否重复
-    if await crud_dict.is_dict_item_code_duplicate(
+    if await crud_system_dict.is_dict_item_code_duplicate(
         db, dict_type_code=data.dict_type_code, code=data.code
     ):
         return error_response(
@@ -228,14 +228,14 @@ async def create_dict_item(
     
     # 如果指定了父项，验证父项是否存在且属于同一类型
     if data.parent_id:
-        parent = await crud_dict.get_dict_item_by_id(db, item_id=data.parent_id)
+        parent = await crud_system_dict.get_dict_item_by_id(db, item_id=data.parent_id)
         if not parent:
             return error_response(code=404, message=f"父项ID {data.parent_id} 不存在")
         if parent.dict_type_code != data.dict_type_code:
             return error_response(code=400, message="父项必须属于同一字典类型")
     
     # 创建字典项
-    item = await crud_dict.create_dict_item(
+    item = await crud_system_dict.create_dict_item(
         db,
         dict_type_code=data.dict_type_code,
         code=data.code,
@@ -265,7 +265,7 @@ async def update_dict_item(
 ):
     """更新字典项"""
     # 查询字典项
-    item = await crud_dict.get_dict_item_by_id(db, item_id=item_id)
+    item = await crud_system_dict.get_dict_item_by_id(db, item_id=item_id)
     if not item:
         return error_response(code=404, message="字典项不存在")
     
@@ -274,7 +274,7 @@ async def update_dict_item(
         if data.parent_id == item_id:
             return error_response(code=400, message="不能将自己设置为父项")
         
-        parent = await crud_dict.get_dict_item_by_id(db, item_id=data.parent_id)
+        parent = await crud_system_dict.get_dict_item_by_id(db, item_id=data.parent_id)
         if not parent:
             return error_response(code=404, message=f"父项ID {data.parent_id} 不存在")
         if parent.dict_type_code != item.dict_type_code:
@@ -283,7 +283,7 @@ async def update_dict_item(
     # 更新字典项
     update_data = data.model_dump(exclude_unset=True)
     if update_data:
-        item = await crud_dict.update_dict_item(db, obj=item, data=update_data)
+        item = await crud_system_dict.update_dict_item(db, obj=item, data=update_data)
     
     return success_response(DictItemOut.model_validate(item).model_dump())
 
@@ -301,12 +301,12 @@ async def delete_dict_item(
 ):
     """删除字典项"""
     # 查询字典项
-    item = await crud_dict.get_dict_item_by_id(db, item_id=item_id)
+    item = await crud_system_dict.get_dict_item_by_id(db, item_id=item_id)
     if not item:
         return error_response(code=404, message="字典项不存在")
     
     # 删除字典项（级联删除子项）
-    await crud_dict.delete_dict_item(db, obj=item)
+    await crud_system_dict.delete_dict_item(db, obj=item)
     
     return success_response({"deleted": True})
 
@@ -327,7 +327,7 @@ async def get_dict_options(
 ):
     """获取字典选项"""
     # 验证字典类型是否存在且启用
-    dict_type = await crud_dict.get_dict_type_by_code(db, code=dict_type_code)
+    dict_type = await crud_system_dict.get_dict_type_by_code(db, code=dict_type_code)
     if not dict_type:
         return error_response(code=404, message=f"字典类型 '{dict_type_code}' 不存在")
     
@@ -335,7 +335,7 @@ async def get_dict_options(
         return error_response(code=400, message=f"字典类型 '{dict_type_code}' 未启用")
     
     # 获取启用的字典项
-    items = await crud_dict.get_dict_options(
+    items = await crud_system_dict.get_dict_options(
         db,
         dict_type_code=dict_type_code,
         parent_id=parent_id,
