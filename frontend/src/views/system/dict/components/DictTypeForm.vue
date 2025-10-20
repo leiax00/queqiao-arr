@@ -4,6 +4,7 @@
     :title="isEdit ? '编辑字典类型' : '新增字典类型'"
     width="600px"
     :close-on-click-modal="false"
+    append-to-body
     @close="handleClose"
   >
     <el-form

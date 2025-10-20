@@ -240,6 +240,36 @@
         border-color: #0ea5e9;
       }
     }
+    
+    // Element Plus Dialog 对话框组件 - 浅色模式
+    .el-dialog {
+      background-color: #ffffff !important;
+      border: 1px solid #e2e8f0 !important;
+      
+      .el-dialog__header {
+        border-bottom: 1px solid #e2e8f0 !important;
+        
+        .el-dialog__title {
+          color: #1e293b !important;
+        }
+        
+        .el-dialog__close {
+          color: #64748b !important;
+          
+          &:hover {
+            color: #0ea5e9 !important;
+          }
+        }
+      }
+      
+      .el-dialog__body {
+        color: #1e293b !important;
+      }
+      
+      .el-dialog__footer {
+        border-top: 1px solid #e2e8f0 !important;
+      }
+    }
   }
   
   .dark {
@@ -333,6 +363,103 @@
           cursor: not-allowed;
         }
       }
+    }
+    
+    // Element Plus Dialog 对话框组件 - 深色模式
+    .el-dialog {
+      background-color: #1e293b !important;
+      border: 1px solid #334155 !important;
+      
+      .el-dialog__header {
+        border-bottom: 1px solid #334155 !important;
+        
+        .el-dialog__title {
+          color: #f1f5f9 !important;
+        }
+        
+        .el-dialog__close {
+          color: #94a3b8 !important;
+          
+          &:hover {
+            color: #38bdf8 !important;
+          }
+        }
+      }
+      
+      .el-dialog__body {
+        color: #f1f5f9 !important;
+      }
+      
+      .el-dialog__footer {
+        border-top: 1px solid #334155 !important;
+      }
+    }
+    
+    // Element Plus Input/Textarea 输入框组件 - 深色模式
+    .el-input__wrapper,
+    .el-textarea__inner {
+      background-color: #0f172a !important;
+      border-color: #334155 !important;
+      box-shadow: none !important;
+      
+      &:hover {
+        border-color: #475569 !important;
+      }
+      
+      &.is-focus,
+      &:focus {
+        border-color: #0ea5e9 !important;
+      }
+    }
+    
+    .el-input__inner,
+    .el-textarea__inner {
+      color: #f1f5f9 !important;
+      
+      &::placeholder {
+        color: #64748b !important;
+      }
+    }
+    
+    // Input Number 数字输入框
+    .el-input-number {
+      .el-input__wrapper {
+        background-color: #0f172a !important;
+      }
+    }
+    
+    // Select 选择器
+    .el-select .el-input__wrapper {
+      background-color: #0f172a !important;
+    }
+    
+    // Input 字数统计
+    .el-input__count {
+      background-color: transparent !important;
+      color: #64748b !important;
+      
+      .el-input__count-inner {
+        background-color: transparent !important;
+        color: #64748b !important;
+      }
+    }
+    
+    // Textarea 字数统计
+    .el-textarea__inner {
+      ~ .el-input__count {
+        background-color: transparent !important;
+        color: #64748b !important;
+        
+        .el-input__count-inner {
+          background-color: transparent !important;
+          color: #64748b !important;
+        }
+      }
+    }
+    
+    // Form Label 标签
+    .el-form-item__label {
+      color: #e2e8f0 !important;
     }
     
     // Element Plus 菜单组件
