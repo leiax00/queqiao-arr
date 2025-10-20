@@ -23,8 +23,8 @@
 ### 2.2 范围
 - API 前缀: `/api/v1/dict/*`
 - 数据模型: 
-  - `DictType`（字典类型表）：`id`, `code`（唯一编码）, `name`（显示名称）, `description`, `is_active`, `created_at`, `updated_at`
-  - `DictItem`（字典项表）：`id`, `dict_type_code`（外键关联类型）, `code`（项编码）, `name`（显示名称）, `value`（实际值）, `sort_order`（排序）, `parent_id`（父项ID，预留层级）, `is_active`, `extra_data`（JSON扩展字段）, `created_at`, `updated_at`
+  - `DictType`（字典类型表）：`id`, `code`（唯一编码）, `name`（显示名称）, `remark`（备注说明）, `is_active`, `created_at`, `updated_at`
+  - `DictItem`（字典项表）：`id`, `dict_type_code`（外键关联类型）, `code`（项编码）, `name`（显示名称）, `value`（实际值）, `sort_order`（排序）, `parent_id`（父项ID，预留层级）, `remark`（备注说明）, `is_active`, `extra_data`（JSON扩展字段）, `created_at`, `updated_at`
 - 响应封装: `backend/app/utils/response.py`（`success_response` / `error_response`）
 
 非范围（后续迭代）:
@@ -37,6 +37,7 @@
 1. 字典类型（DictType）：
    - `code` 为唯一标识（如 `language`, `region`, `quality`），不可重复。
    - `name` 为显示名称（如"语言选项"、"地区选项"、"质量标签"）。
+   - `remark` 为备注说明，用于记录该字典类型的用途、使用场景、注意事项等。
    - `is_active` 控制该类型是否启用；禁用后前端不展示相关选项。
 
 2. 字典项（DictItem）：
@@ -45,7 +46,8 @@
    - `value` 为实际使用的值（如 `zh-CN`, `en-US`）。
    - `sort_order` 控制前端展示顺序（数值越小越靠前）。
    - `parent_id` 预留层级关系（如地区可按洲/国家/城市层级组织），V1 可为 `null`。
-   - `extra_data` 为 JSON 字段，存储扩展属性（如图标、颜色、描述等）。
+   - `remark` 为备注说明，用于记录该选项的使用场景、注意事项等。
+   - `extra_data` 为 JSON 字段，存储扩展属性（如图标、颜色、标签等）。
 
 3. 唯一性与状态：
    - 字典类型 `code` 全局唯一。
@@ -82,7 +84,7 @@
       "id": 1,
       "code": "language",
       "name": "语言选项",
-      "description": "系统支持的语言列表",
+      "remark": "系统支持的语言列表，用于TMDB API查询、前端界面显示等场景",
       "is_active": true,
       "created_at": "2025-10-19T10:00:00Z",
       "updated_at": "2025-10-19T10:00:00Z"
@@ -91,7 +93,7 @@
       "id": 2,
       "code": "region",
       "name": "地区选项",
-      "description": "内容地区分类",
+      "remark": "内容地区分类，用于TMDB地区筛选，影响搜索结果和内容推荐",
       "is_active": true,
       "created_at": "2025-10-19T10:00:00Z",
       "updated_at": "2025-10-19T10:00:00Z"
@@ -111,7 +113,7 @@
 {
   "code": "quality",
   "name": "质量标签",
-  "description": "视频质量分类（如1080p, 4K等）",
+  "remark": "视频质量分类（如1080p, 4K等），用于资源标题解析和质量筛选，优先级：4K > 1080p > 720p",
   "is_active": true
 }
 ```
@@ -151,6 +153,7 @@
       "value": "zh-CN",
       "sort_order": 1,
       "parent_id": null,
+      "remark": "中国大陆使用的简体中文，TMDB语言代码",
       "is_active": true,
       "extra_data": { "icon": "🇨🇳" },
       "created_at": "2025-10-19T10:00:00Z",
@@ -164,6 +167,7 @@
       "value": "en-US",
       "sort_order": 2,
       "parent_id": null,
+      "remark": "美式英语，用于英文资源标题匹配",
       "is_active": true,
       "extra_data": { "icon": "🇺🇸" },
       "created_at": "2025-10-19T10:00:00Z",
@@ -192,6 +196,7 @@
   "value": "ja-JP",
   "sort_order": 3,
   "parent_id": null,
+  "remark": "日本语言选项，用于日语内容匹配",
   "is_active": true,
   "extra_data": { "icon": "🇯🇵" }
 }
@@ -256,7 +261,7 @@ class DictType(Base):
     id: int = Column(Integer, primary_key=True, index=True)
     code: str = Column(String(50), unique=True, nullable=False, index=True, comment="类型编码（唯一）")
     name: str = Column(String(100), nullable=False, comment="类型名称")
-    description: str = Column(String(500), nullable=True, comment="描述")
+    remark: str = Column(Text, nullable=True, comment="备注说明")
     is_active: bool = Column(Boolean, default=True, comment="是否启用")
     created_at: datetime = Column(DateTime, default=datetime.utcnow)
     updated_at: datetime = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -274,6 +279,7 @@ class DictItem(Base):
     value: str = Column(String(200), nullable=False, comment="实际值")
     sort_order: int = Column(Integer, default=0, comment="排序（升序）")
     parent_id: int = Column(Integer, ForeignKey("dict_items.id", ondelete="CASCADE"), nullable=True, comment="父项ID（层级）")
+    remark: str = Column(Text, nullable=True, comment="备注说明")
     is_active: bool = Column(Boolean, default=True, comment="是否启用")
     extra_data: str = Column(Text, nullable=True, comment="扩展数据（JSON）")
     created_at: datetime = Column(DateTime, default=datetime.utcnow)
@@ -337,13 +343,13 @@ class DictItem(Base):
 ### 字典类型
 - 创建类型成功：`code` 唯一，返回完整对象。
 - 创建重复类型：同 `code` 冲突 → 409。
-- 更新类型成功：允许修改 `name`、`description`、`is_active`。
+- 更新类型成功：允许修改 `name`、`remark`、`is_active`。
 - 删除类型成功：级联删除所有字典项。
 
 ### 字典项
 - 创建字典项成功：`dict_type_code + code` 唯一，返回完整对象。
 - 创建重复项：同类型下 `code` 冲突 → 409。
-- 更新字典项成功：允许修改 `name`、`value`、`sort_order`、`is_active`、`extra_data`。
+- 更新字典项成功：允许修改 `name`、`value`、`sort_order`、`remark`、`is_active`、`extra_data`。
 - 删除字典项成功：若有子项，级联删除或拒绝（根据实现选择）。
 
 ### 选项查询
