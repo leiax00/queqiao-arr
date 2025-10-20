@@ -1,4 +1,5 @@
 export { authAPI } from './auth'
 export { configAPI } from './config'
 export { systemAPI } from './system'
+export * as dictAPI from './dict'
 export * from './types'

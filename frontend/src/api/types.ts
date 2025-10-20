@@ -223,3 +223,97 @@ export interface LogEntry {
   timestamp: string
   module?: string
 }
+
+// ---- B-11 系统字典管理契约（FE-07 使用） ----
+
+// 字典类型
+export interface DictType {
+  id: number
+  code: string
+  name: string
+  remark?: string | null
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface DictTypeCreate {
+  code: string
+  name: string
+  remark?: string | null
+  is_active?: boolean
+}
+
+export interface DictTypeUpdate {
+  name?: string
+  remark?: string | null
+  is_active?: boolean
+}
+
+export interface DictTypeListResponse {
+  items: DictType[]
+  total: number
+  page: number
+  page_size: number
+}
+
+// 字典项
+export interface DictItem {
+  id: number
+  dict_type_code: string
+  code: string
+  name: string
+  value: string
+  sort_order: number
+  parent_id?: number | null
+  remark?: string | null
+  is_active: boolean
+  extra_data?: Record<string, any> | null
+  created_at: string
+  updated_at: string
+}
+
+export interface DictItemCreate {
+  dict_type_code: string
+  code: string
+  name: string
+  value: string
+  sort_order?: number
+  parent_id?: number | null
+  remark?: string | null
+  is_active?: boolean
+  extra_data?: Record<string, any> | null
+}
+
+export interface DictItemUpdate {
+  name?: string
+  value?: string
+  sort_order?: number
+  parent_id?: number | null
+  remark?: string | null
+  is_active?: boolean
+  extra_data?: Record<string, any> | null
+}
+
+export interface DictItemListResponse {
+  items: DictItem[]
+  total: number
+  page: number
+  page_size: number
+}
+
+// 字典选项（用于下拉列表）
+export interface DictOption {
+  code: string
+  name: string
+  value: string
+  extra_data?: Record<string, any> | null
+}
+
+export interface DictOptionsResponse {
+  dict_type: {
+    code: string
+    name: string
+  }
+  options: DictOption[]
+}

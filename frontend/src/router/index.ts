@@ -81,6 +81,15 @@ const router = createRouter({
           },
         },
         {
+          path: '/system/dict',
+          name: 'SystemDict',
+          component: () => import('@/views/system/dict/index.vue'),
+          meta: {
+            title: '字典管理',
+            requiresAuth: true,
+          },
+        },
+        {
           path: '/profile',
           name: 'Profile',
           component: () => import('@/views/auth/Profile.vue'),
