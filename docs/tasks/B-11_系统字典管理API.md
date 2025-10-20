@@ -371,15 +371,16 @@ class DictItem(Base):
 
 ## 十、进度清单（Checklist）
 
-- [ ] 任务说明文档（本文件）
-- [ ] 数据模型定义（`models/dict.py`）
-- [ ] Alembic 迁移脚本
-- [ ] CRUD 操作层（`db/crud_dict.py`）
-- [ ] API 端点实现（`api/endpoints/dict.py`）
-- [ ] 路由注册（`api/routes.py`）
-- [ ] Swagger 注释完善
+- [x] 任务说明文档（本文件）
+- [x] 数据模型定义（`models/dict.py`）
+- [x] 数据表创建（项目使用 `create_tables` 自动创建）
+- [x] CRUD 操作层（`db/crud_dict.py`）
+- [x] Pydantic Schema 定义（`api/schemas/dict.py`）
+- [x] API 端点实现（`api/endpoints/dict.py`）
+- [x] 路由注册（`api/routes.py`）
+- [x] Swagger 注释完善
+- [x] 初始化数据脚本（`db/init_dict_data.py`）
 - [ ] 单元测试（`tests/test_dict.py`）
-- [ ] 初始化数据脚本（可选）
 - [ ] 与前端 FE-07 联调通过
 
 ---
