@@ -118,6 +118,29 @@ async def get_current_user(
     return user
 
 
+async def get_current_superuser(
+    current_user=Depends(get_current_user)
+):
+    """
+    获取当前超级管理员用户依赖项
+    
+    Args:
+        current_user: 当前用户对象
+        
+    Returns:
+        User: 当前超级管理员用户对象
+        
+    Raises:
+        HTTPException: 非超级管理员时抛出403错误
+    """
+    if not current_user.is_superuser:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="仅超级管理员可执行此操作",
+        )
+    return current_user
+
+
 @router.post(
     "/login",
     summary="用户登录",
