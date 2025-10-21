@@ -395,6 +395,30 @@
       }
     }
     
+    // Element Plus Popover 弹出框组件 - 深色模式
+    .el-popover.el-popper {
+      background-color: #1e293b !important;
+      border: 1px solid #334155 !important;
+      color: #f1f5f9 !important;
+      
+      .el-popper__arrow::before {
+        background-color: #1e293b !important;
+        border: 1px solid #334155 !important;
+      }
+    }
+    
+    // Element Plus Tooltip 提示框组件 - 深色模式
+    .el-tooltip__popper.is-light {
+      background-color: #1e293b !important;
+      border: 1px solid #334155 !important;
+      color: #f1f5f9 !important;
+      
+      .el-popper__arrow::before {
+        background-color: #1e293b !important;
+        border: 1px solid #334155 !important;
+      }
+    }
+    
     // Element Plus Input/Textarea 输入框组件 - 深色模式
     .el-input__wrapper,
     .el-textarea__inner {

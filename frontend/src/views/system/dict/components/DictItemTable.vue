@@ -72,18 +72,13 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="extra_data" label="扩展数据" min-width="110">
+        <el-table-column prop="extra_data" label="扩展数据" min-width="110" show-overflow-tooltip>
           <template #default="{ row }">
             <div v-if="row.extra_data" class="extra-data">
-              <el-tooltip
-                :content="JSON.stringify(row.extra_data, null, 2)"
-                placement="top"
-                effect="light"
-              >
-                <code class="extra-preview">
-                  {{ formatExtraData(row.extra_data) }}
-                </code>
-              </el-tooltip>
+              <!-- 如果内容简短，直接显示 -->
+              <div class="extra-display">
+                {{ formatExtraData(row.extra_data) }}
+              </div>
             </div>
             <span v-else class="text-secondary">—</span>
           </template>
@@ -142,7 +137,7 @@ import { ref, reactive, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Plus, Edit, Delete } from '@element-plus/icons-vue'
 import { getDictItems, deleteDictItem } from '@/api/dict'
-import type { DictType, DictItem } from '@/api/types'
+import type { DictType, DictItem, DictItemListResponse } from '@/api/types'
 import DictItemForm from './DictItemForm.vue'
 
 // Props
@@ -173,7 +168,7 @@ const loadItems = async () => {
 
   loading.value = true
   try {
-    const res = await getDictItems({
+    const res: DictItemListResponse = await getDictItems({
       dict_type_code: props.currentType.code,
       is_active: statusFilter.value ?? undefined,
       page: pagination.page,
@@ -247,11 +242,37 @@ const handleFormSuccess = async () => {
 
 const formatExtraData = (data: any): string => {
   if (!data) return '—'
-  // 优先显示 icon 字段
-  if (data.icon) return data.icon
-  // 否则显示简化的 JSON
-  const str = JSON.stringify(data)
-  return str.length > 20 ? str.substring(0, 20) + '...' : str
+  
+  // 如果是字符串类型的 JSON，先解析
+  if (typeof data === 'string') {
+    try {
+      data = JSON.parse(data)
+    } catch {
+      return data
+    }
+  }
+  
+  // 如果是对象
+  if (typeof data === 'object' && data !== null) {
+    // 显示主要字段的组合
+    const keys = Object.keys(data)
+    if (keys.length === 0) return '{}'
+    
+    // 如果只有1-2个字段，尝试友好展示
+    if (keys.length <= 2) {
+      const parts = keys.map(key => {
+        const value = data[key]
+        return `${key}: ${value}`
+      })
+      return parts.join(', ')
+    }
+    
+    // 多个字段，显示 JSON 字符串
+    return JSON.stringify(data)
+  }
+  
+  // 其他类型直接转字符串
+  return String(data)
 }
 
 // Watch
@@ -314,8 +335,8 @@ watch(
     }
 
     .extra-data {
-      .extra-preview {
-        @apply font-mono text-xs cursor-help;
+      .extra-display {
+        @apply text-sm;
         @apply text-gray-700 dark:text-gray-300;
       }
     }
