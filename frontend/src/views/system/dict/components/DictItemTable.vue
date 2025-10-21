@@ -57,12 +57,12 @@
             <code class="item-code">{{ row.code }}</code>
           </template>
         </el-table-column>
-        <el-table-column prop="name" label="名称" width="150" />
-        <el-table-column prop="value" label="值" width="100" />
+        <el-table-column prop="name" label="名称" width="180" show-overflow-tooltip />
+        <el-table-column prop="value" label="值" width="160" show-overflow-tooltip />
         <el-table-column
           prop="sort_order"
           label="排序"
-          width="60"
+          width="70"
           align="center"
         />
         <el-table-column prop="is_active" label="状态" width="100" align="center">
@@ -72,7 +72,7 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="extra_data" label="扩展数据" width="150">
+        <el-table-column prop="extra_data" label="扩展数据" min-width="110">
           <template #default="{ row }">
             <div v-if="row.extra_data" class="extra-data">
               <el-tooltip
@@ -88,8 +88,8 @@
             <span v-else class="text-secondary">—</span>
           </template>
         </el-table-column>
-        <el-table-column prop="remark" label="备注" min-width="200" show-overflow-tooltip />
-        <el-table-column label="操作" width="180" fixed="right" align="center">
+        <el-table-column prop="remark" label="备注" min-width="180" show-overflow-tooltip />
+        <el-table-column label="操作" width="165" fixed="right" align="center">
           <template #default="{ row }">
             <el-button
               text
