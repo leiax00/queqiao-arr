@@ -42,7 +42,10 @@ const handleTypeSelect = (type: DictType) => {
     }
 
     .right-panel {
-      @apply flex-1 min-w-0 h-full overflow-hidden;
+      @apply h-full overflow-hidden;
+      flex: 1 1 0; // 关键：flex-basis 设为 0，让 flex 正确分配剩余空间
+      width: 0; // 强制从 flex 计算宽度
+      min-width: 0; // 允许缩小
     }
 
     // 响应式布局：小屏幕改为上下堆叠

@@ -57,12 +57,12 @@
             <code class="item-code">{{ row.code }}</code>
           </template>
         </el-table-column>
-        <el-table-column prop="name" label="名称" width="180" />
-        <el-table-column prop="value" label="值" width="180" />
+        <el-table-column prop="name" label="名称" width="150" />
+        <el-table-column prop="value" label="值" width="100" />
         <el-table-column
           prop="sort_order"
           label="排序"
-          width="80"
+          width="60"
           align="center"
         />
         <el-table-column prop="is_active" label="状态" width="100" align="center">
@@ -270,6 +270,8 @@ watch(
 .dict-item-table {
   @apply macaron-card;
   @apply flex flex-col h-full p-4;
+  width: 100%; // 确保卡片填满容器
+  box-sizing: border-box; // 包含 padding 在宽度内
   
   // 移除卡片悬停浮动效果，避免表格闪动
   &:hover {
@@ -296,7 +298,14 @@ watch(
   }
 
   .table-container {
-    @apply flex-1 flex flex-col overflow-hidden;
+    @apply flex-1 flex flex-col;
+    overflow-x: auto; // 表格横向滚动
+    overflow-y: hidden;
+    width: 100%; // 确保容器宽度正确
+    
+    :deep(.el-table) {
+      width: 100% !important; // 强制表格使用容器宽度
+    }
 
     .item-code {
       @apply font-mono text-xs px-1.5 py-1.5 rounded;
