@@ -1,48 +1,113 @@
 import request from './request'
-import type { ConfigData, ConfigResponse, ProxyConfigData } from './types'
+import type {
+  OverviewResponse,
+  ServiceConfigCreate,
+  ServiceConfigUpdate,
+  TestConnectionRequest,
+  TestConnectionResponse,
+  TmdbConfigUpdate,
+  TmdbOptions,
+} from './types'
 
 export const configAPI = {
-  // 获取所有配置
-  getConfigs: (): Promise<ConfigResponse[]> => {
+  // 获取配置概览（服务 + KV）
+  getOverview: (): Promise<OverviewResponse> => {
     return request({
-      url: '/config',
+      url: '/config/',
       method: 'get',
     })
   },
 
-  // 更新Sonarr配置
-  updateSonarrConfig: (data: ConfigData): Promise<void> => {
+  // 创建配置（服务或KV）
+  createConfig: (payload: ServiceConfigCreate | any): Promise<{ id: number }> => {
     return request({
-      url: '/config/sonarr',
-      method: 'put',
-      data,
-    })
-  },
-
-  // 更新Prowlarr配置
-  updateProwlarrConfig: (data: ConfigData): Promise<void> => {
-    return request({
-      url: '/config/prowlarr',
-      method: 'put',
-      data,
-    })
-  },
-
-  // 更新代理配置
-  updateProxyConfig: (data: ProxyConfigData): Promise<void> => {
-    return request({
-      url: '/config/proxy',
-      method: 'put',
-      data,
-    })
-  },
-
-  // 测试配置连接
-  testConnection: (type: 'sonarr' | 'prowlarr', data: ConfigData): Promise<{ success: boolean; message: string }> => {
-    return request({
-      url: `/config/${type}/test`,
+      url: '/config/',
       method: 'post',
-      data,
+      data: payload,
+    })
+  },
+
+  // 更新配置（服务或KV）
+  updateConfig: (id: number, payload: ServiceConfigUpdate | any): Promise<{ id: number }> => {
+    return request({
+      url: `/config/${id}`,
+      method: 'put',
+      data: payload,
+    })
+  },
+
+  // 删除配置（服务或KV）
+  deleteConfig: (id: number): Promise<{ deleted: boolean }> => {
+    return request({
+      url: `/config/${id}`,
+      method: 'delete',
+    })
+  },
+
+  // 测试服务连接（Sonarr/Prowlarr）
+  testConnection: (body: TestConnectionRequest): Promise<TestConnectionResponse> => {
+    return request({
+      url: '/config/test-connection',
+      method: 'post',
+      data: body,
+    })
+  },
+
+  // 测试代理连通性
+  testProxy: (body: { url?: string; proxy?: Record<string, string>; timeout_ms?: number }): Promise<{ ok: boolean; latency_ms?: number; details: string }> => {
+    return request({
+      url: '/config/test-proxy',
+      method: 'post',
+      data: body,
+    })
+  },
+
+  // TMDB 元数据提供商配置（使用通用接口）
+  // 注：TMDB 配置通过 getOverview() 统一加载，无需单独的 getTmdbConfig 方法
+  
+  createTmdbConfig: (payload: TmdbConfigUpdate): Promise<{ id: number }> => {
+    return request({
+      url: '/config/',
+      method: 'post',
+      data: {
+        type: 'service',
+        service_name: 'tmdb',
+        service_type: 'metadata',
+        name: '默认TMDB',
+        url: payload.url || 'https://api.themoviedb.org/3',
+        api_key: payload.api_key,
+        extra_config: {
+          language: payload.language,
+          region: payload.region,
+          include_adult: payload.include_adult,
+          use_proxy: payload.use_proxy,
+        },
+        is_active: true,
+      },
+    })
+  },
+
+  updateTmdbConfig: (id: number, payload: TmdbConfigUpdate): Promise<{ id: number }> => {
+    return request({
+      url: `/config/${id}`,
+      method: 'put',
+      data: {
+        url: payload.url,
+        api_key: payload.api_key,
+        extra_config: {
+          language: payload.language,
+          region: payload.region,
+          include_adult: payload.include_adult,
+          use_proxy: payload.use_proxy,
+        },
+      },
+    })
+  },
+
+  getTmdbOptions: (): Promise<TmdbOptions> => {
+    return request({
+      url: '/config/tmdb/options',
+      method: 'get',
     })
   },
 }

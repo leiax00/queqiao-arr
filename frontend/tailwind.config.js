@@ -119,7 +119,7 @@ export default {
     },
   },
   plugins: [
-    require('@tailwindcss/forms'),
+    // require('@tailwindcss/forms'), // 禁用以避免表单样式冲突
     require('@tailwindcss/typography'),
   ],
 }

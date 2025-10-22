@@ -22,24 +22,10 @@
           <template #title>仪表板</template>
         </el-menu-item>
 
-        <el-sub-menu index="config">
-          <template #title>
-            <el-icon><Setting /></el-icon>
-            <span>配置管理</span>
-          </template>
-          <el-menu-item index="/config/sonarr">
-            <el-icon><Monitor /></el-icon>
-            <template #title>Sonarr配置</template>
-          </el-menu-item>
-          <el-menu-item index="/config/prowlarr">
-            <el-icon><Search /></el-icon>
-            <template #title>Prowlarr配置</template>
-          </el-menu-item>
-          <el-menu-item index="/config/proxy">
-            <el-icon><Connection /></el-icon>
-            <template #title>代理设置</template>
-          </el-menu-item>
-        </el-sub-menu>
+        <el-menu-item index="/config">
+          <el-icon><Setting /></el-icon>
+          <template #title>配置中心</template>
+        </el-menu-item>
 
         <el-menu-item index="/system">
           <el-icon><Monitor /></el-icon>
@@ -49,6 +35,11 @@
         <el-menu-item index="/logs">
           <el-icon><Document /></el-icon>
           <template #title>日志管理</template>
+        </el-menu-item>
+
+        <el-menu-item index="/system/dict">
+          <el-icon><Operation /></el-icon>
+          <template #title>字典管理</template>
         </el-menu-item>
       </el-menu>
     </el-scrollbar>
@@ -63,8 +54,7 @@ import {
   Setting, 
   Monitor, 
   Document, 
-  Search, 
-  Connection 
+  Operation 
 } from '@element-plus/icons-vue'
 
 interface Props {
@@ -77,6 +67,11 @@ const router = useRouter()
 
 const activeMenu = computed(() => {
   const { path } = route
+  // 特殊处理字典管理页面
+  if (path.startsWith('/system/dict')) {
+    return '/system/dict'
+  }
+  // 配置中心保持原有逻辑
   if (path.startsWith('/config')) {
     return path
   }

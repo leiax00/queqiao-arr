@@ -54,29 +54,11 @@ const router = createRouter({
           },
         },
         {
-          path: '/config/sonarr',
-          name: 'SonarrConfig',
-          component: () => import('@/views/config/Sonarr.vue'),
+          path: '/config',
+          name: 'Config',
+          component: () => import('@/views/config/index.vue'),
           meta: {
-            title: 'Sonarr配置',
-            requiresAuth: true,
-          },
-        },
-        {
-          path: '/config/prowlarr',
-          name: 'ProwlarrConfig',
-          component: () => import('@/views/config/Prowlarr.vue'),
-          meta: {
-            title: 'Prowlarr配置',
-            requiresAuth: true,
-          },
-        },
-        {
-          path: '/config/proxy',
-          name: 'ProxyConfig',
-          component: () => import('@/views/config/Proxy.vue'),
-          meta: {
-            title: '代理设置',
+            title: '配置中心',
             requiresAuth: true,
           },
         },
@@ -95,6 +77,15 @@ const router = createRouter({
           component: () => import('@/views/system/Logs.vue'),
           meta: {
             title: '日志管理',
+            requiresAuth: true,
+          },
+        },
+        {
+          path: '/system/dict',
+          name: 'SystemDict',
+          component: () => import('@/views/system/dict/index.vue'),
+          meta: {
+            title: '字典管理',
             requiresAuth: true,
           },
         },
