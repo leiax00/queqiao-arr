@@ -225,6 +225,35 @@
     }
   }
   
+  // Element Plus Input/Textarea 输入框组件 - 浅色模式
+  .el-input__wrapper {
+    background-color: #ffffff !important;
+    border: 1px solid #d1d5db !important;
+    box-shadow: none !important;
+    
+    &:hover {
+      border-color: #9ca3af !important;
+    }
+    
+    &.is-focus {
+      border-color: #0ea5e9 !important;
+    }
+  }
+  
+  .el-textarea__inner {
+    background-color: #ffffff !important;
+    border: 1px solid #d1d5db !important;
+    box-shadow: none !important;
+    
+    &:hover {
+      border-color: #9ca3af !important;
+    }
+    
+    &:focus {
+      border-color: #0ea5e9 !important;
+    }
+  }
+
   .el-select {
     --el-select-input-focus-border-color: #0ea5e9;
     
@@ -420,17 +449,29 @@
     }
     
     // Element Plus Input/Textarea 输入框组件 - 深色模式
-    .el-input__wrapper,
-    .el-textarea__inner {
+    .el-input__wrapper {
       background-color: #0f172a !important;
-      border-color: #334155 !important;
+      border: 1px solid #334155 !important;
       box-shadow: none !important;
       
       &:hover {
         border-color: #475569 !important;
       }
       
-      &.is-focus,
+      &.is-focus {
+        border-color: #0ea5e9 !important;
+      }
+    }
+    
+    .el-textarea__inner {
+      background-color: #0f172a !important;
+      border: 1px solid #334155 !important;
+      box-shadow: none !important;
+      
+      &:hover {
+        border-color: #475569 !important;
+      }
+      
       &:focus {
         border-color: #0ea5e9 !important;
       }
