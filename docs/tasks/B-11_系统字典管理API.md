@@ -381,7 +381,7 @@ class DictItem(Base):
 - [x] Swagger 注释完善
 - [x] 初始化数据脚本（`db/init_dict_data.py`）
 - [ ] 单元测试（`tests/test_dict.py`）
-- [ ] 与前端 FE-07 联调通过
+- [x] 与前端 FE-07 联调通过 ✅ **2025-10-22 完成**
 
 ---
 
