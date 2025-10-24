@@ -43,7 +43,6 @@ venv.bak/
 
 # 日志
 *.log
-logs/
 
 # Node.js
 node_modules/
@@ -76,8 +75,7 @@ Thumbs.db
 *.temp
 
 # 自定义
-**/runtime/
-backend/data/
+runtime/
 backend/static/
 **/temp/
 **/tmp/

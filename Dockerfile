@@ -1,5 +1,5 @@
 # ==================== 前端构建阶段 ====================
-FROM node:18-alpine as frontend-builder
+FROM node:18-alpine AS frontend-builder
 
 WORKDIR /app/frontend
 
@@ -19,7 +19,7 @@ COPY frontend/ .
 RUN npm run build
 
 # ==================== 开发环境基础镜像 ====================
-FROM python:3.11-slim as base
+FROM python:3.11-slim AS base
 
 WORKDIR /app
 
@@ -39,7 +39,7 @@ RUN pip install --upgrade pip -i https://mirrors.aliyun.com/pypi/simple/ \
     && pip config set global.trusted-host mirrors.aliyun.com
 
 # ==================== 开发环境 ====================
-FROM base as development
+FROM base AS development
 
 # 复制依赖文件
 COPY backend/requirements.txt .
@@ -57,7 +57,7 @@ EXPOSE 8000
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
 
 # ==================== 生产环境 ====================
-FROM base as production
+FROM base AS production
 
 # 复制依赖文件
 COPY backend/requirements.txt .

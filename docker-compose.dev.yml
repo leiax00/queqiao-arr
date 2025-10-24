@@ -18,10 +18,10 @@ services:
       - DEBUG=true
       
       # 数据库配置
-      - DATABASE_URL=sqlite+aiosqlite:///./runtime/data/queqiao-dev.db
-      
+      - DATABASE_URL=sqlite+aiosqlite:///./runtime/data/queqiao.db
+
       # 安全配置
-      - SECRET_KEY=dev-secret-key-not-for-production
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY is not set}
       - ACCESS_TOKEN_EXPIRE_MINUTES=1440  # 开发环境24小时
       
       # CORS配置
@@ -41,8 +41,8 @@ services:
     volumes:
       # 挂载源码实现热重载
       - ./backend:/app
-      - ./data:/app/runtime/data
-      - ./logs:/app/runtime/logs
+      - ./runtime/data:/app/runtime/data
+      - ./runtime/logs:/app/runtime/logs
       # 排除Python缓存
       - /app/__pycache__
       - /app/app/__pycache__
@@ -62,7 +62,7 @@ services:
       - "3000:3000"  # 前端开发服务器
     environment:
       - NODE_ENV=development
-      - VITE_API_BASE_URL=http://localhost:8000
+      - VITE_API_BASE_URL=http://queqiao-arr-dev:8000
     volumes:
       - ./frontend:/app
       - /app/node_modules

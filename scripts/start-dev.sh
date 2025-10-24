@@ -39,7 +39,7 @@ fi
 
 # 创建必要的目录
 echo "📁 创建必要的目录..."
-mkdir -p data logs
+mkdir -p runtime/data runtime/logs
 echo "✅ 目录创建完成"
 echo ""
 
