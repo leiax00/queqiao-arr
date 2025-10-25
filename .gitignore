@@ -53,6 +53,12 @@ yarn-error.log*
 package-lock.json
 yarn.lock
 
+# TypeScript
+*.tsbuildinfo
+frontend/src/**/*.js
+frontend/src/**/*.d.ts
+!frontend/src/**/*.config.js
+
 # 构建输出
 .tmp/
 .nuxt/

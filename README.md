@@ -71,8 +71,6 @@ bash scripts/start-dev.sh
 # 开发环境前端: http://localhost:3000
 ```
 
-📖 **详细的 Docker 部署指南**: 请参阅 [DOCKER_README.md](./DOCKER_README.md)
-
 ### 方式二：本地开发
 
 #### 环境要求

@@ -5,13 +5,9 @@
 from datetime import datetime, timedelta
 from typing import Optional, Union, Any
 from jose import JWTError, jwt
-from passlib.context import CryptContext
-from passlib.hash import bcrypt
+import bcrypt
 
 from app.core.config import settings
-
-# 密码加密上下文
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def create_access_token(
@@ -74,7 +70,13 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     Returns:
         验证结果
     """
-    return pwd_context.verify(plain_password, hashed_password)
+    try:
+        return bcrypt.checkpw(
+            plain_password.encode('utf-8'),
+            hashed_password.encode('utf-8')
+        )
+    except (ValueError, AttributeError):
+        return False
 
 
 def get_password_hash(password: str) -> str:
@@ -85,9 +87,13 @@ def get_password_hash(password: str) -> str:
         password: 明文密码
         
     Returns:
-        哈希密码
+        哈希密码（字符串格式）
     """
-    return pwd_context.hash(password)
+    # 生成 salt 并哈希密码
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
+    # 返回字符串格式（去掉 b'' 前缀）
+    return hashed.decode('utf-8')
 
 
 def generate_secret_key() -> str:

@@ -62,7 +62,8 @@ services:
       - "3000:3000"  # 前端开发服务器
     environment:
       - NODE_ENV=development
-      - VITE_API_BASE_URL=http://queqiao-arr-dev:8000
+      - VITE_API_BASE_URL=http://localhost:8000
+      - VITE_PROXY_TARGET=http://queqiao-arr-dev:8000
     volumes:
       - ./frontend:/app
       - /app/node_modules
