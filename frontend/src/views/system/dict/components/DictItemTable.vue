@@ -22,7 +22,6 @@
           style="width: 120px"
           @change="handleSearch"
         >
-          <el-option label="全部" :value="null" />
           <el-option label="启用" :value="true" />
           <el-option label="禁用" :value="false" />
         </el-select>
