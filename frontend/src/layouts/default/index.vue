@@ -19,7 +19,7 @@
     <div 
       v-if="isMobile && !sidebar.collapsed" 
       class="drawer-bg"
-      @click="closeSidebar"
+      @click="() => closeSidebar()"
     />
     
     <!-- 主内容区 -->

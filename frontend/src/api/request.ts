@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
+import type { AxiosInstance, InternalAxiosRequestConfig, AxiosResponse } from 'axios'
 import { ElMessage } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 
@@ -14,13 +14,11 @@ const service: AxiosInstance = axios.create({
 
 // 请求拦截器
 service.interceptors.request.use(
-  (config: AxiosRequestConfig) => {
+  (config: InternalAxiosRequestConfig) => {
     const authStore = useAuthStore()
     if (authStore.token) {
-      config.headers = {
-        ...config.headers,
-        Authorization: `Bearer ${authStore.token}`,
-      }
+      config.headers = config.headers || {}
+      config.headers.Authorization = `Bearer ${authStore.token}`
     }
     return config
   },

@@ -47,7 +47,7 @@ interface Props {
   modelValue: string
   placeholder?: string
   disabled?: boolean
-  autocomplete?: string
+  autocomplete?: 'on' | 'off' | 'new-password' | 'current-password'
   hint?: string
 }
 

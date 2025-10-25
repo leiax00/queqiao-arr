@@ -53,15 +53,22 @@ Queqiao-arr 是一个专为中文内容优化的自动化下载代理服务，�
 git clone https://github.com/your-username/queqiao-arr.git
 cd queqiao-arr
 
-# 复制环境变量配置（后端）
-cp backend/.env.example backend/.env
+# 复制并配置环境变量
+cp .env.example .env
+# 编辑 .env 文件，至少修改 SECRET_KEY 和 TMDB_API_KEY
 
-# 启动服务
-docker-compose up -d
+# 启动生产环境
+bash scripts/start-prod.sh
+# Windows: scripts\start-prod.bat
+
+# 或启动开发环境
+bash scripts/start-dev.sh
+# Windows: scripts\start-dev.bat
 
 # 访问应用
-# 前端界面: http://localhost:8000
-# API 文档(开发模式): http://localhost:8000/api/docs
+# 生产环境: http://localhost:8000
+# 开发环境后端: http://localhost:8000
+# 开发环境前端: http://localhost:3000
 ```
 
 ### 方式二：本地开发
@@ -164,45 +171,64 @@ npm run dev
 
 ## 🐳 Docker 部署
 
-### 生产环境部署
+项目提供了完整的 Docker 部署方案，支持开发和生产两种环境。
+
+### 快速启动
+
+**开发环境** (包含热重载)：
+```bash
+# Linux/macOS
+bash scripts/start-dev.sh
+
+# Windows
+scripts\start-dev.bat
+
+# 或使用 docker-compose
+docker-compose -f docker-compose.dev.yml up
+```
+
+**生产环境**：
+```bash
+# Linux/macOS
+bash scripts/start-prod.sh
+
+# Windows
+scripts\start-prod.bat
+
+# 或使用 docker-compose
+docker-compose -f docker-compose.prod.yml up -d
+```
+
+### 常用命令
 
 ```bash
-# 构建并启动服务
-docker-compose up -d
-
 # 查看服务状态
-docker-compose ps
+docker-compose -f docker-compose.prod.yml ps
 
 # 查看日志
-docker-compose logs -f
+docker-compose -f docker-compose.prod.yml logs -f
 
 # 停止服务
-docker-compose down
-```
+bash scripts/stop.sh  # Linux/macOS
+scripts\stop.bat      # Windows
 
-### 开发环境部署
-
-```bash
-# 使用开发配置启动
-docker-compose --profile dev up -d
-
-# 进入开发容器
-docker-compose exec dev bash
-```
-
-### 健康检查
-
-```bash
-# 检查服务健康状态
+# 健康检查
 curl -f http://localhost:8000/api/v1/health
-
-# 预期响应
-{
-  "status": "healthy",
-  "timestamp": "2025-09-18T00:00:00Z",
-  "version": "1.0.0"
-}
 ```
+
+### Docker 环境特性对比
+
+| 特性 | 开发环境 | 生产环境 |
+|------|---------|---------|
+| 热重载 | ✅ | ❌ |
+| 源码挂载 | ✅ | ❌ |
+| 调试日志 | ✅ | ❌ |
+| 多进程 | ❌ | ✅ |
+| 健康检查 | ❌ | ✅ |
+| 资源限制 | ❌ | ✅ |
+| 安全配置 | ❌ | ✅ |
+
+📖 **完整的 Docker 部署文档**: 请参阅 [DOCKER_README.md](./DOCKER_README.md)
 
 ## 📚 API 文档
 

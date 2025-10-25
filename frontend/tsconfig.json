@@ -1,14 +1,16 @@
 {
   "extends": "@vue/tsconfig/tsconfig.dom.json",
-  "include": ["env.d.ts", "src/**/*", "src/**/*.vue"],
+  "include": ["env.d.ts", "src/**/*", "src/**/*.vue", "src/auto-imports.d.ts", "src/components.d.ts"],
+  "exclude": ["node_modules", "dist"],
   "compilerOptions": {
-    "composite": true,
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     },
     "strict": true,
     "noUnusedLocals": true,
-    "noUnusedParameters": true
+    "noUnusedParameters": true,
+    "noEmit": true,
+    "isolatedModules": true
   }
 }

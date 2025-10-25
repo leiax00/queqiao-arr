@@ -15,9 +15,6 @@ import type {
   DictOptionsResponse,
 } from './types'
 
-// 类型辅助：request 返回的是解包后的 data
-type UnwrapPromise<T> = T extends Promise<infer U> ? U : T
-
 // ----------------------- 字典类型管理 -----------------------
 
 /**

@@ -54,7 +54,6 @@ const routeTitles: Record<string, string> = {
 }
 
 const breadcrumbs = computed(() => {
-  const matched = route.matched.filter(item => item.meta && item.meta.title)
   const breadcrumbItems: BreadcrumbItem[] = []
 
   // 如果不是首页，添加首页链接
@@ -70,7 +69,7 @@ const breadcrumbs = computed(() => {
   const pathSegments = route.path.split('/').filter(Boolean)
   let currentPath = ''
 
-  pathSegments.forEach((segment, index) => {
+  pathSegments.forEach((segment) => {
     currentPath += `/${segment}`
     const title = routeTitles[currentPath] || segment
     const icon = routeIcons[currentPath]

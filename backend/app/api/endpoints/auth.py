@@ -31,8 +31,8 @@ class RegisterRequest(BaseModel):
     )
     password: str = Field(
         min_length=8,
-        max_length=128,
-        description="密码（至少8位，建议包含字母、数字与符号）",
+        max_length=32,
+        description="密码（8-32字符）",
         examples=["P@ssw0rd"],
     )
     email: Optional[EmailStr] = Field(
@@ -51,8 +51,8 @@ class LoginRequest(BaseModel):
     )
     password: str = Field(
         min_length=8,
-        max_length=128,
-        description="密码",
+        max_length=32,
+        description="密码（8-32字符）",
         examples=["P@ssw0rd"],
     )
 

@@ -43,7 +43,6 @@ venv.bak/
 
 # 日志
 *.log
-logs/
 
 # Node.js
 node_modules/
@@ -53,6 +52,12 @@ yarn-error.log*
 .pnpm-debug.log*
 package-lock.json
 yarn.lock
+
+# TypeScript
+*.tsbuildinfo
+frontend/src/**/*.js
+frontend/src/**/*.d.ts
+!frontend/src/**/*.config.js
 
 # 构建输出
 .tmp/
@@ -76,8 +81,7 @@ Thumbs.db
 *.temp
 
 # 自定义
-**/runtime/
-backend/data/
+runtime/
 backend/static/
 **/temp/
 **/tmp/
