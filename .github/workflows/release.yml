@@ -1,0 +1,245 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+  discussions: write
+
+jobs:
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout 代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 获取完整历史记录以生成 changelog
+          
+      - name: 验证 Tag 格式
+        id: validate
+        run: |
+          TAG_NAME="${GITHUB_REF#refs/tags/}"
+          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+          
+          # 检查是否为语义化版本
+          if [[ ! "$TAG_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?(\+[a-zA-Z0-9.]+)?$ ]]; then
+            echo "❌ Tag 格式不符合语义化版本规范: $TAG_NAME"
+            echo "✅ 正确格式示例: v1.0.0, v1.0.0-beta.1, v1.0.0-rc.1"
+            exit 1
+          fi
+          
+          # 判断是否为预发布版本
+          if [[ "$TAG_NAME" =~ -[a-zA-Z] ]]; then
+            echo "is_prerelease=true" >> $GITHUB_OUTPUT
+            echo "📦 检测到预发布版本: $TAG_NAME"
+          else
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
+            echo "🎉 检测到正式版本: $TAG_NAME"
+          fi
+          
+          # 提取版本号（去掉 v 前缀）
+          VERSION="${TAG_NAME#v}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          
+      - name: 生成 Changelog
+        id: changelog
+        run: |
+          # 获取上一个 tag
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          
+          if [ -z "$PREVIOUS_TAG" ]; then
+            echo "📝 首次发布，生成完整 Changelog"
+            CHANGELOG=$(git log --pretty=format:"- %s (%h)" --no-merges)
+          else
+            echo "📝 生成从 $PREVIOUS_TAG 到 ${{ steps.validate.outputs.tag_name }} 的 Changelog"
+            CHANGELOG=$(git log ${PREVIOUS_TAG}..HEAD --pretty=format:"- %s (%h)" --no-merges)
+          fi
+          
+          # 按类型分类 Changelog
+          FEATURES=$(echo "$CHANGELOG" | grep -i "^- feat" || true)
+          FIXES=$(echo "$CHANGELOG" | grep -i "^- fix" || true)
+          DOCS=$(echo "$CHANGELOG" | grep -i "^- docs" || true)
+          REFACTOR=$(echo "$CHANGELOG" | grep -i "^- refactor" || true)
+          CHORE=$(echo "$CHANGELOG" | grep -i "^- chore" || true)
+          OTHER=$(echo "$CHANGELOG" | grep -v -i "^- \(feat\|fix\|docs\|refactor\|chore\)" || true)
+          
+          # 构建完整的 Changelog
+          FULL_CHANGELOG="## 📋 更新内容"$'\n\n'
+          
+          if [ ! -z "$FEATURES" ]; then
+            FULL_CHANGELOG+="### ✨ 新功能"$'\n'
+            FULL_CHANGELOG+="$FEATURES"$'\n\n'
+          fi
+          
+          if [ ! -z "$FIXES" ]; then
+            FULL_CHANGELOG+="### 🐛 Bug 修复"$'\n'
+            FULL_CHANGELOG+="$FIXES"$'\n\n'
+          fi
+          
+          if [ ! -z "$DOCS" ]; then
+            FULL_CHANGELOG+="### 📖 文档更新"$'\n'
+            FULL_CHANGELOG+="$DOCS"$'\n\n'
+          fi
+          
+          if [ ! -z "$REFACTOR" ]; then
+            FULL_CHANGELOG+="### ♻️ 代码重构"$'\n'
+            FULL_CHANGELOG+="$REFACTOR"$'\n\n'
+          fi
+          
+          if [ ! -z "$CHORE" ]; then
+            FULL_CHANGELOG+="### 🔧 其他更改"$'\n'
+            FULL_CHANGELOG+="$CHORE"$'\n\n'
+          fi
+          
+          if [ ! -z "$OTHER" ]; then
+            FULL_CHANGELOG+="### 📦 其他提交"$'\n'
+            FULL_CHANGELOG+="$OTHER"$'\n\n'
+          fi
+          
+          # 保存 Changelog 到文件
+          echo "$FULL_CHANGELOG" > changelog.md
+          
+          # 输出摘要
+          echo "### 📝 Changelog 生成成功" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          cat changelog.md >> $GITHUB_STEP_SUMMARY
+          
+      - name: 创建 Release 说明
+        id: release_notes
+        run: |
+          cat > release_notes.md << 'EOF'
+          # Queqiao-arr ${{ steps.validate.outputs.tag_name }}
+          
+          $(cat changelog.md)
+          
+          ## 🐳 Docker 镜像
+          
+          ```bash
+          # 拉取最新版本
+          docker pull leiax00/queqiao-arr:${{ steps.validate.outputs.version }}
+          
+          # 拉取 latest（仅正式版本）
+          docker pull leiax00/queqiao-arr:latest
+          ```
+          
+          **支持平台:**
+          - `linux/amd64` - x86_64 架构
+          - `linux/arm64` - ARM64 架构（如树莓派 4+、Apple Silicon）
+          
+          ## 📦 快速部署
+          
+          ### Docker Compose（推荐）
+          
+          ```bash
+          # 克隆项目
+          git clone https://github.com/leiax00/queqiao-arr.git
+          cd queqiao-arr
+          
+          # 切换到此版本
+          git checkout ${{ steps.validate.outputs.tag_name }}
+          
+          # 配置环境变量
+          cp .env.example .env
+          # 编辑 .env 文件
+          
+          # 启动服务
+          docker-compose -f docker-compose.prod.yml up -d
+          ```
+          
+          ### 直接运行
+          
+          ```bash
+          docker run -d \
+            --name queqiao-arr \
+            -p 8000:8000 \
+            -v queqiao-data:/app/data \
+            -v queqiao-logs:/app/logs \
+            -e SECRET_KEY=your-secret-key \
+            -e TMDB_API_KEY=your-tmdb-api-key \
+            leiax00/queqiao-arr:${{ steps.validate.outputs.version }}
+          ```
+          
+          ## 📚 文档
+          
+          - [项目主页](https://github.com/leiax00/queqiao-arr)
+          - [Docker 部署指南](https://github.com/leiax00/queqiao-arr/blob/main/DOCKER_README.md)
+          - [API 文档](http://localhost:8000/api/docs) (启动后访问)
+          
+          ## 🆙 升级说明
+          
+          EOF
+          
+          # 添加升级说明（根据版本类型）
+          if [ "${{ steps.validate.outputs.is_prerelease }}" == "true" ]; then
+            cat >> release_notes.md << 'EOF'
+          ⚠️ **这是一个预发布版本**，可能包含未完全测试的功能。建议在测试环境中使用。
+          
+          升级步骤：
+          1. 备份数据库和配置文件
+          2. 拉取新镜像：`docker pull leiax00/queqiao-arr:${{ steps.validate.outputs.version }}`
+          3. 重启容器：`docker-compose restart`
+          4. 检查日志确认启动成功
+          
+          EOF
+          else
+            cat >> release_notes.md << 'EOF'
+          升级步骤：
+          1. 备份数据库和配置文件（重要！）
+          2. 停止当前容器：`docker-compose down`
+          3. 拉取新镜像：`docker pull leiax00/queqiao-arr:${{ steps.validate.outputs.version }}`
+          4. 启动新容器：`docker-compose up -d`
+          5. 检查日志确认启动成功：`docker-compose logs -f`
+          
+          EOF
+          fi
+          
+          # 添加常见问题
+          cat >> release_notes.md << 'EOF'
+          ## ❓ 常见问题
+          
+          **Q: 如何查看完整的提交历史？**  
+          A: 访问 [完整 Changelog](https://github.com/leiax00/queqiao-arr/compare/$PREVIOUS_TAG...${{ steps.validate.outputs.tag_name }})
+          
+          **Q: 遇到问题如何反馈？**  
+          A: 请在 [Issues](https://github.com/leiax00/queqiao-arr/issues) 页面提交问题
+          
+          **Q: 如何回滚到旧版本？**  
+          A: 使用指定版本的镜像标签，例如：`leiax00/queqiao-arr:1.0.0`
+          
+          ---
+          
+          **完整更新日志:** https://github.com/leiax00/queqiao-arr/blob/${{ steps.validate.outputs.tag_name }}/docs/CHANGELOG.md
+          
+          EOF
+          
+      - name: 创建 GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release ${{ steps.validate.outputs.tag_name }}
+          body_path: release_notes.md
+          prerelease: ${{ steps.validate.outputs.is_prerelease }}
+          draft: false
+          generate_release_notes: false
+          discussion_category_name: Releases
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: 发布成功通知
+        run: |
+          echo "### 🎉 Release 发布成功！" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**版本:** ${{ steps.validate.outputs.tag_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**类型:** ${{ steps.validate.outputs.is_prerelease == 'true' && '预发布版本' || '正式版本' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Docker 镜像:**" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+          echo "docker pull leiax00/queqiao-arr:${{ steps.validate.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Release 链接:** https://github.com/${{ github.repository }}/releases/tag/${{ steps.validate.outputs.tag_name }}" >> $GITHUB_STEP_SUMMARY
+
