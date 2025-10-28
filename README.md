@@ -11,6 +11,10 @@
 [![Vue](https://img.shields.io/badge/Vue-3.3+-green.svg)](https://vuejs.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-teal.svg)](https://fastapi.tiangolo.com/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](https://www.docker.com/)
+[![Docker Build](https://github.com/leiax00/queqiao-arr/actions/workflows/docker.yml/badge.svg)](https://github.com/leiax00/queqiao-arr/actions/workflows/docker.yml)
+[![Release](https://github.com/leiax00/queqiao-arr/actions/workflows/release.yml/badge.svg)](https://github.com/leiax00/queqiao-arr/actions/workflows/release.yml)
+[![GitHub release](https://img.shields.io/github/v/release/leiax00/queqiao-arr)](https://github.com/leiax00/queqiao-arr/releases/latest)
+[![Docker Pulls](https://img.shields.io/docker/pulls/leiax00/queqiao-arr)](https://hub.docker.com/r/leiax00/queqiao-arr)
 
 </div>
 
