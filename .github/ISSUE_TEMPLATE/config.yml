@@ -1,0 +1,6 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 问题讨论 / Q&A
+    url: https://github.com/leiax00/queqiao-arr/discussions
+    about: 一般性讨论、使用咨询或不确定是否为缺陷的问题
+
