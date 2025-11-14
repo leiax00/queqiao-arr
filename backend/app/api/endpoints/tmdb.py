@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.endpoints.auth import get_current_user
 from app.db.database import get_db
 from app.db import crud_config
-from app.services.clients import TMDBClient
+from app.services.clients import TMDBClient, make_client
 from app.utils import success_response, error_response
 from app.utils.config_helpers import (
     parse_extra_config,
@@ -46,20 +46,26 @@ async def _load_tmdb_runtime(db: AsyncSession) -> tuple[str, Optional[Dict[str, 
     return api_key, proxies, extra
 
 
+async def get_tmdb_client(db: AsyncSession = Depends(get_db)) -> TMDBClient:
+    """
+    作为依赖注入的 TMDB 客户端构造函数
+    根据当前启用的 TMDB 配置创建客户端实例
+    """
+    api_key, proxies, extra = await _load_tmdb_runtime(db)
+    client = make_client("tmdb", api_key=api_key, proxies=proxies, timeout=10)
+    assert isinstance(client, TMDBClient)
+    return client
+
+
 @router.get(
     "/search",
     summary="搜索剧集（TMDB）",
 )
 async def tmdb_search(
     params: TMDBSearchQuery = Depends(),
-    db: AsyncSession = Depends(get_db),
+    client: TMDBClient = Depends(get_tmdb_client),
     current_user=Depends(get_current_user),
 ):
-    from app.services.clients import make_client
-
-    api_key, proxies, extra = await _load_tmdb_runtime(db)
-    client = make_client("tmdb", api_key=api_key, proxies=proxies, timeout=10)
-    assert isinstance(client, TMDBClient)
     params_dict = params.model_dump() if hasattr(params, "model_dump") else params.dict()
     ok, data = client.search_tv(**params_dict)
     if not ok:
@@ -84,13 +90,9 @@ async def tmdb_search(
 async def tmdb_tv_details(
     tv_id: int,
     language: str = Query(default="zh-CN"),
-    db: AsyncSession = Depends(get_db),
+    client: TMDBClient = Depends(get_tmdb_client),
     current_user=Depends(get_current_user),
 ):
-    from app.services.clients import make_client
-
-    api_key, proxies, extra = await _load_tmdb_runtime(db)
-    client = make_client("tmdb", api_key=api_key, proxies=proxies, timeout=10)
     ok, data = client.get_tv_details(tv_id=tv_id, language=language)
     if not ok:
         return error_response(message=str(data), code=502)
@@ -104,13 +106,9 @@ async def tmdb_tv_details(
 async def tmdb_alternative_titles(
     tv_id: int,
     country: Optional[str] = Query(default=None),
-    db: AsyncSession = Depends(get_db),
+    client: TMDBClient = Depends(get_tmdb_client),
     current_user=Depends(get_current_user),
 ):
-    from app.services.clients import make_client
-
-    api_key, proxies, extra = await _load_tmdb_runtime(db)
-    client = make_client("tmdb", api_key=api_key, proxies=proxies, timeout=10)
     ok, data = client.get_alternative_titles(tv_id=tv_id, country=country)
     if not ok:
         return error_response(message=str(data), code=502)
@@ -124,4 +122,3 @@ async def tmdb_alternative_titles(
                 titles.append({"title": title, "country": country_code})
     response_data = TMDBAlternativeTitlesResponse(tv_id=tv_id, titles=titles)
     return success_response(response_data)
-
