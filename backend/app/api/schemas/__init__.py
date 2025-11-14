@@ -14,6 +14,12 @@ from .config import (
     TestConnectionRequest,
     ProxyTestRequest,
 )
+from .tmdb import (
+    TMDBSearchQuery,
+    TMDBSearchResponse,
+    TMDBAlternativeTitlesResponse,
+    TMDBDetailsResponse,
+)
 
 __all__ = [
     "ServiceConfigOut",
@@ -26,5 +32,9 @@ __all__ = [
     "TestConnectionById",
     "TestConnectionRequest",
     "ProxyTestRequest",
+    "TMDBSearchQuery",
+    "TMDBSearchResponse",
+    "TMDBAlternativeTitlesResponse",
+    "TMDBDetailsResponse",
 ]
 

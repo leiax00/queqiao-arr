@@ -19,6 +19,7 @@
   - 支持按 `language/region`、`include_adult` 等配置查询
   - 统一遵循基类 `ExternalServiceClient` 的请求封装与代理/超时策略
   - 输出结构便于后续模块消费（解析器、编排）
+  - 新增后端查询端点（供前端直接调用）：`/api/v1/tmdb/search`、`/api/v1/tmdb/tv/{tv_id}`、`/api/v1/tmdb/tv/{tv_id}/alternative_titles`
 - 非范围：
   - 标题解析器实现（B-06）
   - Torznab XML 生成（B-07）
@@ -70,6 +71,57 @@ backend/app/services/clients/
 - `search_tv`：`results[] -> { id, name, original_name, origin_country, first_air_date }`
 - `get_tv_details`：`{ id, name, original_name, alternative_titles? }`
 - `get_alternative_titles`：`titles[] -> { title, iso_3166_1 }`
+
+### 5.x 后端查询端点（本系统）
+- 路由与文件：`app/api/endpoints/tmdb.py`，在 `app/api/routes.py` 以前缀 `/api/v1/tmdb` 挂载
+- 鉴权：需登录（沿用 `get_current_user`）
+- 运行时参数：自动读取启用中的 `service_name=tmdb` 配置，解密 `api_key`；若 `extra_config.use_proxy=true` 则注入全局代理
+
+1) 搜索剧集
+   - Method: `GET /api/v1/tmdb/search`
+   - Query: `query`(必填), `language`=`zh-CN`, `page`>=1, `include_adult`=false
+   - 200 示例：
+   ```json
+   {
+     "code": 200,
+     "message": "OK",
+     "data": {
+       "page": 1,
+       "total_pages": 5,
+       "results": [
+         { "id": 123, "name": "名称", "original_name": "Original", "first_air_date": "2020-01-01" }
+       ]
+     }
+   }
+   ```
+
+2) 获取剧集详情
+   - Method: `GET /api/v1/tmdb/tv/{tv_id}`
+   - Query: `language`=`zh-CN`
+   - 200：原样透传 TMDB 详情（字段精简由消费方决定）
+
+3) 获取替代标题
+   - Method: `GET /api/v1/tmdb/tv/{tv_id}/alternative_titles`
+   - Query: `country`（可选，ISO 3166-1）
+   - 200 示例：
+   ```json
+   {
+     "code": 200,
+     "message": "OK",
+     "data": {
+       "tv_id": 123,
+       "titles": [
+         { "title": "国漫名", "country": "CN" }
+       ]
+     }
+   }
+   ```
+
+错误语义：
+- 400：缺少或非法参数（如 tv_id 非正整数、TMDB 配置缺少 api_key）
+- 401：未认证
+- 404：未找到启用中的 TMDB 配置
+- 502：上游 TMDB 返回错误或网络异常（统一为 `error_response` 提示）
 
 ---
 
@@ -138,13 +190,15 @@ if ok and data.get("results"):
 ## 十一、进度清单（Checklist）
 - [x] 创建分支 `feature/B-04-tmdb-client`（当前）
 - [x] 审阅现有 `base.py`/`tmdb.py`，对齐返回与异常风格（当前）
-- [ ] 补齐方法签名与参数（设计确认）
-- [ ] 编写结果结构与字段映射方案
-- [ ] 输出契约确认（与 B-06 对齐）
-- [ ] 审核通过后开始实现 & 提交代码
+- [x] 补齐方法签名与参数：`search_tv/get_tv_details/get_alternative_titles/discover_tv`
+- [x] 新增 TMDB 查询端点：`/tmdb/search`、`/tmdb/tv/{id}`、`/tmdb/tv/{id}/alternative_titles`
+- [x] 路由挂载与鉴权接入（复用 `get_current_user`）
+- [ ] 编写结果结构与字段映射方案（与 B-06 对齐）
 - [ ] 增补最小测试用例与示例
+- [ ] 审核通过后提交代码
 
 ---
 
 ## 十二、变更记录
 - v0.1（2025-10-28）：创建文档与任务分支，确定范围与方法清单
+- v0.2（2025-10-28）：完成 TMDBClient 方法增强与 TMDB 查询端点（search/detail/alternative_titles），文档同步
