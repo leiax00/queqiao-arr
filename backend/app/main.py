@@ -14,7 +14,6 @@ from app.core.config import settings
 from app.api.routes import api_router
 from app.db.database import create_tables, AsyncSessionLocal
 from app.db.init_dict_data import init_dict_data
-from app.services.clients.base import close_all_shared_clients
 
 
 @asynccontextmanager
@@ -48,12 +47,6 @@ async def lifespan(app: FastAPI):
     
     # 关闭时执行
     print("👋 应用正在关闭...")
-    # 关闭共享 httpx 客户端池
-    try:
-        close_all_shared_clients()
-        print("🔌 共享HTTP客户端已关闭")
-    except Exception as e:
-        print(f"⚠️  关闭共享HTTP客户端失败: {e}")
 
 
 # 创建FastAPI应用实例
