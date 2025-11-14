@@ -117,11 +117,47 @@ backend/app/services/clients/
    }
    ```
 
-错误语义：
+错误语义与示例：
 - 400：缺少或非法参数（如 tv_id 非正整数、TMDB 配置缺少 api_key）
-- 401：未认证
+  - 示例（query 为空字符串触发客户端校验）：
+    ```json
+    {
+      "code": 400,
+      "message": "参数错误: query 不能为空",
+      "data": null
+    }
+    ```
+  - 示例（tv_id 非法）：
+    ```json
+    {
+      "code": 400,
+      "message": "参数错误: tv_id 必须为正整数",
+      "data": null
+    }
+    ```
+- 401：未认证（FastAPI 统一认证错误格式）
+  - 示例：
+    ```json
+    {
+      "detail": "Not authenticated"
+    }
+    ```
 - 404：未找到启用中的 TMDB 配置
+  - 示例：
+    ```json
+    {
+      "detail": "未找到启用中的 TMDB 配置"
+    }
+    ```
 - 502：上游 TMDB 返回错误或网络异常（统一为 `error_response` 提示）
+  - 示例（网络失败）：
+    ```json
+    {
+      "code": 502,
+      "message": "TMDB 连接失败: 网络请求失败: https://api.themoviedb.org/3/search/tv",
+      "data": null
+    }
+    ```
 
 ---
 

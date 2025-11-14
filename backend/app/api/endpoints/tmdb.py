@@ -60,6 +60,68 @@ async def get_tmdb_client(db: AsyncSession = Depends(get_db)) -> TMDBClient:
 @router.get(
     "/search",
     summary="搜索剧集（TMDB）",
+    responses={
+        200: {
+            "description": "查询成功",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "code": 200,
+                        "message": "OK",
+                        "data": {
+                            "page": 1,
+                            "total_pages": 5,
+                            "results": [
+                                {
+                                    "id": 123,
+                                    "name": "名称",
+                                    "original_name": "Original",
+                                    "first_air_date": "2020-01-01",
+                                    "origin_country": ["CN"],
+                                }
+                            ],
+                        },
+                    }
+                }
+            },
+        },
+        400: {
+            "description": "请求参数非法",
+            "content": {
+                "application/json": {
+                    "example": {"code": 400, "message": "参数错误: query 不能为空", "data": None}
+                }
+            },
+        },
+        401: {
+            "description": "未认证",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "Not authenticated"}
+                }
+            },
+        },
+        404: {
+            "description": "TMDB 配置缺失",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "未找到启用中的 TMDB 配置"}
+                }
+            },
+        },
+        502: {
+            "description": "上游 TMDB 返回错误或网络异常",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "code": 502,
+                        "message": "TMDB 连接失败: 网络请求失败: https://api.themoviedb.org/3/search/tv",
+                        "data": None,
+                    }
+                }
+            },
+        },
+    },
 )
 async def tmdb_search(
     params: TMDBSearchQuery = Depends(),
@@ -86,6 +148,62 @@ async def tmdb_search(
 @router.get(
     "/tv/{tv_id}",
     summary="获取剧集详情（TMDB）",
+    responses={
+        200: {
+            "description": "查询成功",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "code": 200,
+                        "message": "OK",
+                        "data": {
+                            "id": 123,
+                            "name": "名称",
+                            "original_name": "Original",
+                            "number_of_seasons": 2,
+                            "number_of_episodes": 24,
+                        },
+                    }
+                }
+            },
+        },
+        400: {
+            "description": "请求参数非法",
+            "content": {
+                "application/json": {
+                    "example": {"code": 400, "message": "参数错误: tv_id 必须为正整数", "data": None}
+                }
+            },
+        },
+        401: {
+            "description": "未认证",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "Not authenticated"}
+                }
+            },
+        },
+        404: {
+            "description": "TMDB 配置缺失",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "未找到启用中的 TMDB 配置"}
+                }
+            },
+        },
+        502: {
+            "description": "上游 TMDB 返回错误或网络异常",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "code": 502,
+                        "message": "TMDB 连接失败: HTTP 错误 500: https://api.themoviedb.org/3/tv/123",
+                        "data": None,
+                    }
+                }
+            },
+        },
+    },
 )
 async def tmdb_tv_details(
     tv_id: int,
@@ -102,6 +220,62 @@ async def tmdb_tv_details(
 @router.get(
     "/tv/{tv_id}/alternative_titles",
     summary="获取剧集替代标题（TMDB）",
+    responses={
+        200: {
+            "description": "查询成功",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "code": 200,
+                        "message": "OK",
+                        "data": {
+                            "tv_id": 123,
+                            "titles": [
+                                {"title": "国漫名", "country": "CN"},
+                                {"title": "中文（香港）", "country": "HK"},
+                            ],
+                        },
+                    }
+                }
+            },
+        },
+        400: {
+            "description": "请求参数非法",
+            "content": {
+                "application/json": {
+                    "example": {"code": 400, "message": "参数错误: country 必须为2位字母的国家码", "data": None}
+                }
+            },
+        },
+        401: {
+            "description": "未认证",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "Not authenticated"}
+                }
+            },
+        },
+        404: {
+            "description": "TMDB 配置缺失",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "未找到启用中的 TMDB 配置"}
+                }
+            },
+        },
+        502: {
+            "description": "上游 TMDB 返回错误或网络异常",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "code": 502,
+                        "message": "TMDB 连接失败: 网络请求失败: https://api.themoviedb.org/3/tv/123/alternative_titles",
+                        "data": None,
+                    }
+                }
+            },
+        },
+    },
 )
 async def tmdb_alternative_titles(
     tv_id: int,
