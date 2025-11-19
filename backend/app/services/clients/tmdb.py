@@ -15,6 +15,9 @@ class TMDBClient(ExternalServiceClient):
         api_key: str,
         proxies: Optional[Dict[str, str]] = None,
         timeout: int = 30,
+        default_language: Optional[str] = None,
+        default_region: Optional[str] = None,
+        default_include_adult: Optional[bool] = None,
     ):
         """
         初始化 TMDB 客户端
@@ -23,10 +26,21 @@ class TMDBClient(ExternalServiceClient):
             api_key: TMDB API 密钥
             proxies: 代理配置
             timeout: 请求超时时间
+            default_language: 默认语言代码
+            default_region: 默认地区代码
+            default_include_adult: 默认是否包含成人内容
         """
         # TMDB 使用固定的 API 地址
         base_url = "https://api.themoviedb.org/3"
         super().__init__(base_url, api_key, proxies, timeout)
+
+        # 配置驱动的默认参数，提供兜底值
+        self.default_language: str = (default_language or "zh-CN").strip() or "zh-CN"
+        self.default_region: str = (default_region or "CN").strip() or "CN"
+        if isinstance(default_include_adult, bool):
+            self.default_include_adult: bool = default_include_adult
+        else:
+            self.default_include_adult = False
 
     def _build_headers(self, additional_headers: Optional[Dict[str, str]] = None) -> Dict[str, str]:
         """
@@ -68,18 +82,18 @@ class TMDBClient(ExternalServiceClient):
     def search_tv(
         self,
         query: str,
-        language: str = "zh-CN",
+        language: Optional[str] = None,
         page: int = 1,
-        include_adult: bool = False,
+        include_adult: Optional[bool] = None,
     ) -> tuple[bool, Any]:
         """
         搜索电视剧
 
         Args:
             query: 搜索关键词
-            language: 语言代码（默认: zh-CN）
+            language: 语言代码；为空时使用实例默认配置
             page: 分页页码（>=1）
-            include_adult: 是否包含成人内容
+            include_adult: 是否包含成人内容；None 时使用实例默认配置
 
         Returns:
             (是否成功, 搜索结果或错误消息)
@@ -90,8 +104,14 @@ class TMDBClient(ExternalServiceClient):
             return False, "参数错误: query 不能为空"
         if not isinstance(page, int) or page < 1:
             page = 1
-        if not isinstance(include_adult, bool):
-            include_adult = False
+
+        # 语言与成人内容标志应用默认策略
+        if not isinstance(language, str) or not language.strip():
+            language = self.default_language
+        if include_adult is None:
+            include_adult = self.default_include_adult
+        elif not isinstance(include_adult, bool):
+            include_adult = self.default_include_adult
 
         params = self._add_api_key_to_params({
             "query": query.strip(),
@@ -107,7 +127,8 @@ class TMDBClient(ExternalServiceClient):
 
         Args:
             tv_id: TMDB 电视剧 ID
-            country: 可选国家过滤（ISO 3166-1 代码，例如: CN/HK/TW/US）
+            country: 可选国家过滤（ISO 3166-1 代码，例如: CN/HK/TW/US）；
+                     为空时使用实例默认地区
 
         Returns:
             (是否成功, 别名列表或错误消息)
@@ -118,21 +139,23 @@ class TMDBClient(ExternalServiceClient):
             return False, "参数错误: tv_id 必须为正整数"
 
         params: Dict[str, Any] = self._add_api_key_to_params()
-        if country:
+        # 默认国家策略：未传入时回落到默认地区
+        effective_country = country or self.default_region
+        if effective_country:
             # 仅做基本合法性校验（两位大写字母）
-            if isinstance(country, str) and len(country) == 2 and country.isalpha():
-                params["country"] = country.upper()
+            if isinstance(effective_country, str) and len(effective_country) == 2 and effective_country.isalpha():
+                params["country"] = effective_country.upper()
             else:
                 return False, "参数错误: country 必须为2位字母的国家码"
         return self._get(f"/tv/{tv_id}/alternative_titles", params=params)
 
-    def get_tv_details(self, tv_id: int, language: str = "zh-CN") -> tuple[bool, Any]:
+    def get_tv_details(self, tv_id: int, language: Optional[str] = None) -> tuple[bool, Any]:
         """
         获取电视剧详情
 
         Args:
             tv_id: TMDB 电视剧 ID
-            language: 语言代码（默认: zh-CN）
+            language: 语言代码；为空时使用实例默认配置
 
         Returns:
             (是否成功, 详情数据或错误消息)
@@ -140,9 +163,14 @@ class TMDBClient(ExternalServiceClient):
         if not isinstance(tv_id, int) or tv_id <= 0:
             return False, "参数错误: tv_id 必须为正整数"
 
-        params = self._add_api_key_to_params({
-            "language": language,
-        })
+        if not isinstance(language, str) or not language.strip():
+            language = self.default_language
+
+        params = self._add_api_key_to_params(
+            {
+                "language": language,
+            }
+        )
         return self._get(f"/tv/{tv_id}", params=params)
 
     def discover_tv(self, params: Optional[Dict[str, Any]] = None) -> tuple[bool, Any]:
@@ -181,4 +209,3 @@ class TMDBClient(ExternalServiceClient):
             return True, "TMDB 连接成功"
         else:
             return False, f"TMDB 连接失败: {result}"
-

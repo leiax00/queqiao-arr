@@ -8,9 +8,9 @@ from pydantic import BaseModel, Field
 
 class TMDBSearchQuery(BaseModel):
     query: str = Field(min_length=1, description="搜索关键词")
-    language: str = Field(default="zh-CN", description="语言代码")
+    language: Optional[str] = Field(default=None, description="语言代码（为空时使用 TMDB 配置默认）")
     page: int = Field(default=1, ge=1, description="页码（>=1）")
-    include_adult: bool = Field(default=False, description="是否包含成人内容")
+    include_adult: Optional[bool] = Field(default=None, description="是否包含成人内容（为空时使用 TMDB 配置默认）")
 
 
 class TMDBSearchItem(BaseModel):

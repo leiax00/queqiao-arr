@@ -302,7 +302,92 @@ backend/app/services/clients/
 
 ---
 
-## 七、验收标准（Acceptance Criteria）
+## 七、配置驱动的默认参数策略
+
+### 7.1 配置来源与默认值
+
+- 配置来源：启用中的 `ServiceConfig(service_name='tmdb', service_type='metadata')` 记录，其 `extra_config` 字段。
+- 参与默认策略的字段（与 B-09 保持一致）：
+  - `extra_config.language: string` - 语言代码，默认值：`"zh-CN"`。
+  - `extra_config.region: string` - 地区代码，默认值：`"CN"`。
+  - `extra_config.include_adult: boolean` - 是否包含成人内容，默认值：`false`。
+- 运行时加载逻辑（`_load_tmdb_runtime` + `get_tmdb_client`）：
+  - 读取数据库中的 TMDB 配置，优先使用第一条启用中的记录。
+  - 解密 `api_key`，解析 `extra_config` 为字典。
+  - 构造默认值并注入 `TMDBClient` 实例：
+    - `default_language = extra.get("language") or "zh-CN"`
+    - `default_region = extra.get("region") or "CN"`
+    - `default_include_adult = bool(extra.get("include_adult"))`（缺省视为 `False`）。
+
+### 7.2 参数优先级规则
+
+整体遵循「调用方覆盖配置，配置覆盖代码内置默认」的原则：
+
+1. **显式请求参数（per-call）最高优先级**
+   - 例如：`/tmdb/search?language=zh-TW&include_adult=true`。
+   - 只要调用方明确传入（且通过基本校验），就优先使用该值。
+2. **TMDB 配置中的 `extra_config` 作为全局默认**
+   - 当前请求未显式传入的字段，优先回落到 `extra_config` 中对应值。
+3. **代码内置兜底值（硬编码常量）最低优先级**
+   - 当既没有请求参数，又没有配置（或配置为空/非法）时，才使用：
+     - `language = "zh-CN"`；
+     - `region = "CN"`；
+     - `include_adult = False`。
+
+> 结论：`请求参数 > extra_config > 硬编码默认值`。
+
+### 7.3 TMDBClient 中的落地
+
+- 扩展 `TMDBClient` 构造函数，接收配置驱动默认值：
+  - 新增参数：`default_language: str | None`、`default_region: str | None`、`default_include_adult: bool | None`。
+  - 在 `__init__` 中设置属性：
+    - `self.default_language = (default_language or "zh-CN").strip() or "zh-CN"`；
+    - `self.default_region = (default_region or "CN").strip() or "CN"`；
+    - `self.default_include_adult = default_include_adult if isinstance(default_include_adult, bool) else False`。
+- 方法内应用默认策略：
+  - `search_tv`：
+    - `language` 允许为 `None`，内部：为空或非法时使用 `self.default_language`。
+    - `include_adult` 允许为 `None`，内部：为 `None` 或非法时使用 `self.default_include_adult`。
+  - `get_tv_details`：
+    - `language` 允许为 `None`，内部：未提供或为空时使用 `self.default_language`。
+  - `get_alternative_titles`：
+    - `country` 允许为 `None`，内部：`effective_country = country or self.default_region`，再做两位大写字母校验。
+
+### 7.4 端点层的具体行为
+
+1) `GET /api/v1/tmdb/search`
+
+- 请求模型 `TMDBSearchQuery`：
+  - `language: Optional[str]`，默认 `None`，表示「由配置决定」。
+  - `include_adult: Optional[bool]`，默认 `None`，表示「由配置决定」。
+- 端点逻辑：
+  - 提取参数后：
+    - `language = params.language or client.default_language`；
+    - `include_adult = client.default_include_adult if params.include_adult is None else params.include_adult`。
+  - 调用 `client.search_tv(...)`。
+
+2) `GET /api/v1/tmdb/tv/{tv_id}`
+
+- Query `language` 为可选，如果未提供：
+  - 使用 `client.default_language` 调用 `get_tv_details`。
+
+3) `GET /api/v1/tmdb/tv/{tv_id}/alternative_titles`
+
+- Query `country` 为可选，如果未提供：
+  - 在端点层先计算 `effective_country = country or client.default_region`，再调用 `get_alternative_titles`。
+  - 客户端内部仍会做 2 位大写字母校验。
+
+### 7.5 与 B-09 / B-06 的关系
+
+- 与 B-09：
+  - `extra_config.language/region/include_adult` 成为 TMDB 查询行为的实际入口默认值，配置变更后所有调用自动受影响。
+- 与 B-06：
+  - B-06 仅消费统一结构（第六节），默认策略在客户端与端点层已经应用完毕。
+  - 如 B-06 需要特殊场景（例如强制使用其他语言或包含成人内容），可以通过端点参数临时覆盖配置默认值。
+
+---
+
+## 八、验收标准（Acceptance Criteria）
 1. `TMDBClient` 完成上述方法的实现或增强，参数支持 `language/region/include_adult/page`（必要时）。
 2. 连接测试 `check_status()` 在有效 `api_key` 下返回成功；异常路径返回可读信息。
 3. 输出契约满足 B-06 消费需求，字段命名清晰、单位一致。
@@ -311,21 +396,21 @@ backend/app/services/clients/
 
 ---
 
-## 八、实施计划（3 PD）
+## 九、实施计划（3 PD）
 - Day 1：梳理方法清单与签名，补齐 `search_tv`/`get_alternative_titles` 参数，添加 `get_tv_details`
 - Day 2：实现结果映射与基本校验；补充日志要点与错误语义
 - Day 3：编写使用示例与最小测试用例草案（不提交实现代码，待审核后进行）
 
 ---
 
-## 九、风险与对策
+## 十、风险与对策
 - 上游速率限制或字段变化：通过结果映射与容错字段访问降低耦合
 - 中文别名覆盖有限：支持多地区获取并合并去重
 - 代理/网络不稳定：提供超时设置与清晰错误提示
 
 ---
 
-## 十、示例用法（草案，仅供说明）
+## 十一、示例用法（草案，仅供说明）
 ```python
 from app.services.clients.tmdb import TMDBClient
 
@@ -338,7 +423,7 @@ if ok and data.get("results"):
 
 ---
 
-## 十一、进度清单（Checklist）
+## 十二、进度清单（Checklist）
 - [x] 创建分支 `feature/B-04-tmdb-client`（当前）
 - [x] 审阅现有 `base.py`/`tmdb.py`，对齐返回与异常风格（当前）
 - [x] 补齐方法签名与参数：`search_tv/get_tv_details/get_alternative_titles/discover_tv`
@@ -347,9 +432,9 @@ if ok and data.get("results"):
 - [x] 编写结果结构与字段映射方案（与 B-06 对齐）
   - [x] 明确 TMDB 原始字段与内部字段的映射关系（search/detail/alternative_titles 三类接口）
   - [x] 输出供 B-06 使用的统一数据结构说明（示例 JSON + 字段含义说明）
-- [ ] 整理配置驱动的默认参数策略
-  - [ ] 约定并实现从 TMDB 配置 `extra_config` 中读取 `language/region/include_adult` 等默认值
-  - [ ] 在客户端或端点层应用默认值，并允许调用方覆盖
+- [x] 整理配置驱动的默认参数策略
+  - [x] 约定并实现从 TMDB 配置 `extra_config` 中读取 `language/region/include_adult` 等默认值
+  - [x] 在客户端或端点层应用默认值，并允许调用方覆盖
 - [ ] 评估并设计 TMDB 查询结果的轻量缓存方案
   - [ ] 根据 B-08 端到端编排的访问模式，确定缓存粒度（按 `tv_id` / `query + language` 等）
   - [ ] 在性能需求明确后选择实现方式（内存 LRU / 其他），并补充失效策略说明
@@ -363,6 +448,6 @@ if ok and data.get("results"):
 
 ---
 
-## 十二、变更记录
+## 十三、变更记录
 - v0.1（2025-10-28）：创建文档与任务分支，确定范围与方法清单
 - v0.2（2025-10-28）：完成 TMDBClient 方法增强与 TMDB 查询端点（search/detail/alternative_titles），文档同步

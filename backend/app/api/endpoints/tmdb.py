@@ -52,7 +52,24 @@ async def get_tmdb_client(db: AsyncSession = Depends(get_db)) -> TMDBClient:
     根据当前启用的 TMDB 配置创建客户端实例
     """
     api_key, proxies, extra = await _load_tmdb_runtime(db)
-    client = make_client("tmdb", api_key=api_key, proxies=proxies, timeout=10)
+    # 从配置中解析默认参数
+    default_language = ""
+    default_region = ""
+    default_include_adult = False
+    if isinstance(extra, dict):
+        default_language = str(extra.get("language") or "").strip()
+        default_region = str(extra.get("region") or "").strip()
+        default_include_adult = bool(extra.get("include_adult")) if "include_adult" in extra else False
+
+    client = make_client(
+        "tmdb",
+        api_key=api_key,
+        proxies=proxies,
+        timeout=10,
+        default_language=default_language or None,
+        default_region=default_region or None,
+        default_include_adult=default_include_adult,
+    )
     assert isinstance(client, TMDBClient)
     return client
 
@@ -128,8 +145,7 @@ async def tmdb_search(
     client: TMDBClient = Depends(get_tmdb_client),
     current_user=Depends(get_current_user),
 ):
-    params_dict = params.model_dump() if hasattr(params, "model_dump") else params.dict()
-    ok, data = client.search_tv(**params_dict)
+    ok, data = client.search_tv(**params.model_dump())
     if not ok:
         return error_response(message=str(data), code=502)
     # 透传 TMDB 的分页/结果基本字段
@@ -207,7 +223,7 @@ async def tmdb_search(
 )
 async def tmdb_tv_details(
     tv_id: int,
-    language: str = Query(default="zh-CN"),
+    language: Optional[str] = Query(default=None),
     client: TMDBClient = Depends(get_tmdb_client),
     current_user=Depends(get_current_user),
 ):
