@@ -387,7 +387,69 @@ backend/app/services/clients/
 
 ---
 
-## 八、验收标准（Acceptance Criteria）
+## 八、TMDB 查询结果持久化与映射策略（替代轻量缓存）
+
+> 结论：本任务 **不再实现进程内缓存**，而是将“关键词 → TMDB 剧集”的映射结果持久化入库，由后续的元数据模块/编排模块作为主数据源使用。
+
+### 8.1 目标与基本思路
+
+- 目标：
+  - 避免每次解析或搜索都直接访问 TMDB，而是尽量复用既有的本地 TMDB 数据。
+  - 让“关键词 / TVDB ID / 本地番剧实体”和“TMDB 剧集 ID”之间形成稳定的映射关系，方便后续复用。
+- 基本思路：
+  - 第一次需要 TMDB 数据时，通过 `/search` / `/tv/{id}` 等接口查到目标 `tmdb_id`。
+  - 将该 `tmdb_id` 及其 TMDB 详情、别名信息一并写入本地元数据存储（例如 `tmdb_tv` 表）。
+  - 将“关键词 / TVDB ID / 本地番剧 ID”等与 `tmdb_id` 建立关联（例如 `tmdb_keyword_mapping` / `tvdb_tmdb_mapping` 表）。
+  - 后续再遇到相同关键词或同一部番剧时，优先从本地映射表和 TMDB 元数据表读取，而不是重新请求 TMDB。
+
+### 8.2 关键词与 TMDB ID 的映射
+
+建议的逻辑流程（在后续 B-06/B-08 中落地）：
+
+1. 解析器或前端传入关键词 `keyword`（可以是番剧中文名/原名/常用别名）。
+2. 在本地“关键词映射表”中查询：
+   - 若存在记录：`(keyword, tmdb_id)`，则直接使用该 `tmdb_id`，并从本地 TMDB 表获取详细信息。
+   - 若不存在记录：
+     - 调用 TMDB `/search/tv` 接口获取候选列表；
+     - 根据规则（例如年份、地区、用户手动确认）选出一个 `tmdb_id`；
+     - 将 `(keyword, tmdb_id)` 写入关键词映射表，后续再次使用该关键词时直接命中本地。
+3. 对于一部番剧往往存在多个关联关键词（别名）：
+   - 可以为同一个 `tmdb_id` 维护多条 `(keyword, tmdb_id)` 记录；
+   - 也可以在本地番剧表上维护“推荐关键词列表”，方便后续匹配和 UI 展示。
+
+### 8.3 与 TVDB / Sonarr 的 ID 映射
+
+考虑 Sonarr 及 TVDB 生态的实际情况：
+
+- Sonarr 本身常以 `tvdb_id` 作为主键；
+- 本系统只要建立 `tvdb_id ↔ tmdb_id` 的映射，即可在不同元数据源之间对齐同一部番剧。
+
+建议：
+
+- 维护一张“跨源 ID 映射表”，字段类似：
+  - `tvdb_id`
+  - `tmdb_id`
+  - `local_series_id`（本地番剧实体 ID，可选）
+  - `source` / `note` / `created_at` 等元数据
+- 解析流程：
+  - 若已有 `tvdb_id`：优先查映射表获取 `tmdb_id`，从本地 TMDB 元数据表拿详情；
+  - 若尚无映射：可以用 TVDB 提供的信息（名称、年份等）作为关键词/条件去 TMDB 搜索，人工或规则选中后，建立 `tvdb_id ↔ tmdb_id` 映射并落库。
+
+### 8.4 B-04 与后续任务的边界
+
+- 在 B-04 中：
+  - 仅负责提供稳定的 TMDB 客户端与查询端点（search/detail/alternative_titles），以及清晰的输出契约。
+  - 不在客户端层实现任何缓存/落库逻辑，以保持职责单一。
+- 在后续 B-06/B-08 或新的“元数据存储”任务中：
+  - 负责定义本地 TMDB 元数据表结构（如 `tmdb_tv`、`tmdb_alternative_title`）。
+  - 定义关键词映射、TVDB ↔ TMDB 映射的表结构和写入/更新策略。
+  - 将“关键词解析 → TMDB 查询 → 映射落库”的业务流程固化下来，并优先使用本地数据。
+
+> 因此，本节结论是：**不实现运行时内存缓存，而是通过持久化映射和本地元数据存储来减少 TMDB 请求**。B-04 仅提供查询能力和数据契约，具体落库策略交由 B-06/B-08 设计与实现。
+
+---
+
+## 九、验收标准（Acceptance Criteria）
 1. `TMDBClient` 完成上述方法的实现或增强，参数支持 `language/region/include_adult/page`（必要时）。
 2. 连接测试 `check_status()` 在有效 `api_key` 下返回成功；异常路径返回可读信息。
 3. 输出契约满足 B-06 消费需求，字段命名清晰、单位一致。
@@ -396,21 +458,21 @@ backend/app/services/clients/
 
 ---
 
-## 九、实施计划（3 PD）
+## 十、实施计划（3 PD）
 - Day 1：梳理方法清单与签名，补齐 `search_tv`/`get_alternative_titles` 参数，添加 `get_tv_details`
 - Day 2：实现结果映射与基本校验；补充日志要点与错误语义
 - Day 3：编写使用示例与最小测试用例草案（不提交实现代码，待审核后进行）
 
 ---
 
-## 十、风险与对策
+## 十一、风险与对策
 - 上游速率限制或字段变化：通过结果映射与容错字段访问降低耦合
 - 中文别名覆盖有限：支持多地区获取并合并去重
 - 代理/网络不稳定：提供超时设置与清晰错误提示
 
 ---
 
-## 十一、示例用法（草案，仅供说明）
+## 十二、示例用法（草案，仅供说明）
 ```python
 from app.services.clients.tmdb import TMDBClient
 
@@ -423,7 +485,7 @@ if ok and data.get("results"):
 
 ---
 
-## 十二、进度清单（Checklist）
+## 十三、进度清单（Checklist）
 - [x] 创建分支 `feature/B-04-tmdb-client`（当前）
 - [x] 审阅现有 `base.py`/`tmdb.py`，对齐返回与异常风格（当前）
 - [x] 补齐方法签名与参数：`search_tv/get_tv_details/get_alternative_titles/discover_tv`
@@ -435,9 +497,9 @@ if ok and data.get("results"):
 - [x] 整理配置驱动的默认参数策略
   - [x] 约定并实现从 TMDB 配置 `extra_config` 中读取 `language/region/include_adult` 等默认值
   - [x] 在客户端或端点层应用默认值，并允许调用方覆盖
-- [ ] 评估并设计 TMDB 查询结果的轻量缓存方案
-  - [ ] 根据 B-08 端到端编排的访问模式，确定缓存粒度（按 `tv_id` / `query + language` 等）
-  - [ ] 在性能需求明确后选择实现方式（内存 LRU / 其他），并补充失效策略说明
+- [x] 评估并设计 TMDB 查询结果的轻量缓存方案
+  - [x] 评估典型访问模式后，确认不在客户端层实现运行时缓存
+  - [x] 采用“关键词/TVDB ↔ TMDB 映射 + 本地元数据持久化”方案替代轻量缓存
 - [ ] 增补最小测试用例与示例
   - [ ] 为 `TMDBClient` 编写参数校验与错误路径单元测试（query/tv_id/country 非法、超时/HTTP 错误）
   - [ ] 为 `/api/v1/tmdb/*` 端点编写最小 API 测试（401/404/400/502 等典型分支）
@@ -448,6 +510,6 @@ if ok and data.get("results"):
 
 ---
 
-## 十三、变更记录
+## 十四、变更记录
 - v0.1（2025-10-28）：创建文档与任务分支，确定范围与方法清单
 - v0.2（2025-10-28）：完成 TMDBClient 方法增强与 TMDB 查询端点（search/detail/alternative_titles），文档同步
