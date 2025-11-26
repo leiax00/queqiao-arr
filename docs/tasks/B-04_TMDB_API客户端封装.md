@@ -474,13 +474,44 @@ backend/app/services/clients/
 
 ## 十二、示例用法（草案，仅供说明）
 ```python
-from app.services.clients.tmdb import TMDBClient
+from app.services.clients import make_client
 
-client = TMDBClient(api_key="<masked>", proxies=None, timeout=15)
-ok, data = client.search_tv(query="凡人修仙传", language="zh-CN")
-if ok and data.get("results"):
-    tv_id = data["results"][0]["id"]
-    ok2, aliases = client.get_alternative_titles(tv_id)
+async def example_usage():
+    # 1. 创建客户端 (通常由依赖注入自动完成)
+    # 注意：实际使用中应优先使用 get_tmdb_client 依赖
+    client = make_client(
+        "tmdb",
+        api_key="<your_api_key>",
+        default_language="zh-CN",
+        default_region="CN"
+    )
+
+    # 2. 搜索剧集
+    ok, result = client.search_tv(query="凡人修仙传")
+    if ok:
+        print(f"搜索成功，共找到 {result.get('total_results')} 条结果")
+        if result.get("results"):
+            tv_id = result["results"][0]["id"]
+            print(f"首个结果 ID: {tv_id}")
+            
+            # 3. 获取详情
+            ok_detail, detail = client.get_tv_details(tv_id)
+            if ok_detail:
+                print(f"剧集名称: {detail.get('name')}")
+                print(f"季数: {detail.get('number_of_seasons')}")
+
+            # 4. 获取中文别名
+            ok_alias, aliases = client.get_alternative_titles(tv_id, country="CN")
+            if ok_alias:
+                cn_titles = [t['title'] for t in aliases.get('titles', []) if t.get('iso_3166_1') == 'CN']
+                print(f"中国大陆别名: {cn_titles}")
+    else:
+        print(f"搜索失败: {result}")
+
+    # 5. 错误处理示例
+    ok_err, err_msg = client.search_tv(query="")
+    if not ok_err:
+        print(f"预期内的错误: {err_msg}")  # 输出: 参数错误: query 不能为空
 ```
 
 ---
@@ -500,10 +531,10 @@ if ok and data.get("results"):
 - [x] 评估并设计 TMDB 查询结果的轻量缓存方案
   - [x] 评估典型访问模式后，确认不在客户端层实现运行时缓存
   - [x] 采用“关键词/TVDB ↔ TMDB 映射 + 本地元数据持久化”方案替代轻量缓存
-- [ ] 增补最小测试用例与示例
-  - [ ] 为 `TMDBClient` 编写参数校验与错误路径单元测试（query/tv_id/country 非法、超时/HTTP 错误）
-  - [ ] 为 `/api/v1/tmdb/*` 端点编写最小 API 测试（401/404/400/502 等典型分支）
-  - [ ] 在文档或测试代码中补充典型调用示例，说明推荐用法
+- [x] 增补最小测试用例与示例
+  - [x] 为 `TMDBClient` 编写参数校验与错误路径单元测试（query/tv_id/country 非法、超时/HTTP 错误）
+  - [x] 为 `/api/v1/tmdb/*` 端点编写最小 API 测试（401/404/400/502 等典型分支）
+  - [x] 在文档或测试代码中补充典型调用示例，说明推荐用法
 - [ ] 审核通过后提交代码
   - [ ] 创建指向 `develop` 分支的 PR，附上本任务文档与典型请求/响应示例
   - [ ] 完成代码评审与验收后合入主开发分支
