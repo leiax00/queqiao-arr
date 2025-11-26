@@ -63,5 +63,5 @@
 ## Agent 指南（中文沟通约定）
 - 默认语言：所有对话、代码评审意见、Issue/PR 描述与项目文档均使用中文。
 - 源代码：标识符仍使用英文（遵循生态惯例与工具链兼容性）；注释中文优先、保持简洁准确。
-- 提交信息：支持中文，遵循 Conventional Commits 结构（type(scope): subject）。
+- 提交信息：信息必须使用中文表达，遵循 Conventional Commits 结构（type(scope): subject）。
 - 模板：Issue/PR 模板已提供中文版本，按模板填写即可。

@@ -4,7 +4,9 @@
 """
 
 from typing import Any, Dict, Optional
+
 import httpx
+
 from app.utils.logger import logger
 
 
@@ -12,11 +14,11 @@ class ExternalServiceClient:
     """外部服务客户端基类"""
 
     def __init__(
-        self,
-        base_url: str,
-        api_key: Optional[str] = None,
-        proxies: Optional[Dict[str, str]] = None,
-        timeout: int = 30,
+            self,
+            base_url: str,
+            api_key: Optional[str] = None,
+            proxies: Optional[Dict[str, str]] = None,
+            timeout: int = 30,
     ):
         """
         初始化外部服务客户端
@@ -58,10 +60,10 @@ class ExternalServiceClient:
         return headers
 
     def _get(
-        self,
-        path: str,
-        params: Optional[Dict[str, Any]] = None,
-        headers: Optional[Dict[str, str]] = None,
+            self,
+            path: str,
+            params: Optional[Dict[str, Any]] = None,
+            headers: Optional[Dict[str, str]] = None,
     ) -> tuple[bool, Any]:
         """
         发送 GET 请求
@@ -79,7 +81,7 @@ class ExternalServiceClient:
 
         try:
             # 构建 httpx 客户端配置
-            client_kwargs = {
+            client_kwargs: Dict[str, Any] = {
                 "timeout": self.timeout,
                 "follow_redirects": True,
             }
@@ -120,10 +122,10 @@ class ExternalServiceClient:
             return False, error_msg
 
     def _post(
-        self,
-        path: str,
-        data: Optional[Dict[str, Any]] = None,
-        headers: Optional[Dict[str, str]] = None,
+            self,
+            path: str,
+            data: Optional[Dict[str, Any]] = None,
+            headers: Optional[Dict[str, str]] = None,
     ) -> tuple[bool, Any]:
         """
         发送 POST 请求
@@ -141,7 +143,7 @@ class ExternalServiceClient:
 
         try:
             # 构建 httpx 客户端配置
-            client_kwargs = {
+            client_kwargs: Dict[str, Any] = {
                 "timeout": self.timeout,
                 "follow_redirects": True,
             }
@@ -180,4 +182,3 @@ class ExternalServiceClient:
             error_msg = f"未知错误: {str(e)}"
             logger.error(f"请求 {url} 时发生未知错误: {str(e)}")
             return False, error_msg
-
