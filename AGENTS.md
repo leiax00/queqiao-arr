@@ -1,67 +1,147 @@
-# Repository Guidelines
+# AGENT.md
 
-## 项目结构与模块组织
-- 根目录：Docker 配置、`scripts/`、`docs/`、本指南。
-- 后端：`backend/app/`（FastAPI + SQLAlchemy），测试位于 `backend/tests/`。
-- 前端：`frontend/src/`（Vue 3 + TypeScript，Tailwind，Element Plus）。
-- 常用脚本：`scripts/start-dev.*`、`scripts/start-prod.*`（开发/生产启动）。
+## 项目概述
 
-## 构建、测试与开发命令
-- 后端依赖：`cd backend && pip install -r requirements.txt`（Python 3.11+）。
-- 后端开发：`cd backend && uvicorn app.main:app --reload`。
-- 后端质量：`black app/`、`ruff check app/`、`mypy app/`。
-- 后端测试：`cd backend && pytest`（覆盖率：`pytest --cov=app`）。
-- 前端开发：`cd frontend && npm install && npm run dev`。
-- 前端构建：`cd frontend && npm run build`（Vite，含 `vue-tsc` 类型检查）。
-- 前端校验：`cd frontend && npm run lint`、`npm run type-check`。
-- Docker 开发：`docker-compose -f docker-compose.dev.yml up` 或执行 `scripts/start-dev.*`。
-- Docker 生产：`docker-compose -f docker-compose.prod.yml up -d` 或执行 `scripts/start-prod.*`。
+**Queqiao-arr** 是一个针对中文内容优化的自动化下载代理服务，作为 Sonarr 和 Prowlarr 之间的桥梁。它提供智能的中文媒体内容管理，具有增强的标题解析、通过 TMDB 的中文别名解析以及改进的搜索功能。
 
-## 代码风格与命名规范
-- Python：4 空格缩进；使用 Black 格式化；模块/函数用 `snake_case`，类用 `PascalCase`。
-- TypeScript/Vue：2 空格缩进；ESLint + Prettier；变量/函数用 `camelCase`。
-- Vue SFC 文件名使用 `PascalCase`（例：`ConfigFormCard.vue`）。
-- 组合式函数以 `use*` 命名（例：`src/composables/useTmdbConfig.ts`）。
-- 后端 API 位于 `backend/app/api/endpoints/`，统一前缀 `/api/v1/*`。
+## 架构
+
+**后端**: Python/FastAPI 异步架构，SQLAlchemy 2.0+，JWT 认证
+**前端**: Vue 3 + TypeScript，Element Plus UI，Tailwind CSS
+**数据库**: SQLite 异步支持
+**外部服务**: TMDB、Prowlarr、Sonarr 通过统一客户端架构
+
+## 开发命令
+
+### Docker 开发（推荐）
+```bash
+# 启动开发环境（包含前端）
+bash scripts/start-dev.sh --with-frontend
+
+# 生产部署
+docker-compose -f docker-compose.prod.yml up -d
+```
+
+### 后端开发
+```bash
+cd backend
+pytest                           # 运行测试
+pytest --cov=app                 # 测试及覆盖率
+black app/                       # 代码格式化
+ruff check app/                  # 代码检查
+mypy app/                        # 类型检查
+uvicorn app.main:app --reload    # 开发服务器
+```
+
+### 前端开发
+```bash
+cd frontend
+npm run dev                      # 开发服务器
+npm run build                    # 生产构建
+npm run lint                     # 代码检查
+npm run type-check              # 类型检查
+```
+
+## 核心架构模式
+
+### 外部服务客户端
+所有外部服务客户端（TMDB、Prowlarr、Sonarr）都遵循 `backend/app/services/clients/base.py` 中的基础客户端模式：
+```python
+class ExternalServiceClient:
+    def __init__(self, base_url: str, api_key: str, proxies: Dict[str, str], timeout: int)
+    def _get(self, endpoint: str, params: Dict) -> Tuple[bool, Any]
+    def check_status(self) -> Tuple[bool, str]
+```
+
+### API 响应模式
+一致的元组返回模式：`(success: bool, data_or_error: Any)`
+
+### 配置管理
+使用 Pydantic 设置的加密配置存储。必需环境变量：
+- `SECRET_KEY`: 生产环境使用 `openssl rand -hex 32` 生成
+- `TMDB_API_KEY`: 从 https://www.themoviedb.org/settings/api 获取
+- `DATABASE_URL`: SQLite 路径（有默认值）
+
+### 前端组合式函数
+Composition API 使用 `use*` 命名约定的响应式功能。
+
+## 项目结构
+```
+backend/app/
+├── api/endpoints/     # API 路由处理器
+├── api/schemas/       # Pydantic 模型
+├── core/             # 配置与安全
+├── db/               # 数据库模型与 CRUD
+├── models/           # SQLAlchemy 模型
+├── services/clients/ # 外部服务客户端
+└── utils/            # 工具函数与助手
+
+frontend/src/
+├── api/              # API 客户端函数
+├── components/       # Vue 组件
+├── composables/      # Composition API 函数
+├── layouts/          # 布局组件
+├── stores/           # Pinia 状态管理
+└── views/            # 页面组件
+```
+
+## 当前开发状态
+
+**已完成**: 用户认证、配置管理、TMDB 客户端、系统字典、Docker 设置
+**进行中**: Prowlarr 搜索客户端（B-05 任务）
+**待开发**: 标题解析器（B-06）、Torznab XML 生成（B-07）、自动化引擎（B-08）
+
+## 代码规范
+
+**Python**: 4 空格缩进，Black 格式化，类型提示，snake_case 命名
+**TypeScript/Vue**: 2 空格缩进，ESLint + Prettier，camelCase/PascalCase，Composition API
+**提交**: Conventional Commits 中文提交信息，常见作用域：backend, frontend, api, docker, docs
+**分支策略**: `main`（稳定），`develop`（集成），`feature/*`，`fix/*`
 
 ## 测试指南
-- 框架：后端使用 Pytest，文件命名：`backend/tests/test_*.py`。
-- 优先覆盖关键路径：认证、配置、外部客户端、API 端点；异步用例使用 `pytest-asyncio`。
-- 使用 `--cov` 生成覆盖率报告，提交前补齐核心分支用例。
- - 覆盖率目标：整体 ≥ 70%，关键模块（认证、配置、客户端、路由）≥ 80%（当前为目标值，CI 暂不强制校验）。
-- 前端当前不要求编写测试用例。
+
+**后端测试**:
+- 使用 Pytest 框架，文件命名：`backend/tests/test_*.py`
+- 覆盖率目标：整体 ≥ 70%，关键模块（认证、配置、客户端、路由）≥ 80%
+- 优先覆盖关键路径：认证、配置、外部客户端、API 端点
+- 异步用例使用 `pytest-asyncio`
+- 使用 `--cov` 生成覆盖率报告
+
+**前端测试**:
+- 当前不要求编写测试用例
+- 专注于手动测试、代码检查和类型检查
 
 ## 提交与 Pull Request 规范
-- 提交遵循 Conventional Commits：`feat|fix|docs|style|refactor|test|chore(scope): message`。
-- 常见 scope：`backend`、`frontend`、`api`、`docker`、`docs`。
-- PR 要求：清晰描述、关联 Issue、变更范围、UI 变更附截图；本地通过后端测试/质量检查、前端 Lint/类型检查与构建。
+
+**提交规范**:
+- 遵循 Conventional Commits：`feat|fix|docs|style|refactor|test|chore(scope): message`
+- 常见作用域：`backend`、`frontend`、`api`、`docker`、`docs`
+- 提交信息必须使用中文
+
+**PR 要求**:
+- 清晰描述、关联 Issue、变更范围
+- UI 变更附截图
+- 本地通过后端测试/质量检查
+- 前端 Lint/类型检查与构建通过
 
 ## 分支策略
-- 默认分支：建议将仓库默认分支设置为 `develop`（需在 GitHub 仓库 Settings → Branches 中配置）。
-- 主分支：`main`（稳定可发布，仅在发布时更新）。
-- 开发分支：`develop`（集成分支，默认协作基线）。
-- 特性分支：从 `develop` 切出 `feature/<short-name>`，完成后提 PR 合入 `develop`。
-- 修复分支：从 `develop` 切出 `fix/<short-name>`，完成后提 PR 合入 `develop`。
-- 紧急热修：从 `main` 切出 `hotfix/<short-name>`，合入 `main` 后回合 `develop`。
-- PR 目标分支：日常功能/修复均指向 `develop`；发布专用 PR 使用 `develop → main`。
+
+- **默认分支**: `develop`（集成分支，默认协作基线）
+- **主分支**: `main`（稳定可发布，仅在发布时更新）
+- **特性分支**: 从 `develop` 切出 `feature/<short-name>`，完成后提 PR 合入 `develop`
+- **修复分支**: 从 `develop` 切出 `fix/<short-name>`，完成后提 PR 合入 `develop`
+- **紧急热修**: 从 `main` 切出 `hotfix/<short-name>`，合入 `main` 后回合 `develop`
 
 ## 发布与版本
-- 语义化版本：`MAJOR.MINOR.PATCH`。
-- 发布流程：`develop` 达到发布标准 → 创建 `develop → main` 的发布 PR → 合并后打标签 `vX.Y.Z` → 触发 CI/CD（构建镜像与 Release）。
-- 变更记录：如维护 `CHANGELOG.md`，请在发布前更新。
 
-## Issue 与 PR 模板
-- 位置建议：`.github/ISSUE_TEMPLATE/` 与 `.github/pull_request_template.md`（如未创建，按以下要点撰写）。
-- Issue 要点：问题/需求概述、复现步骤或动机、期望行为、日志/截图、环境信息。
-- PR 清单：关联 Issue、变更说明与影响范围、是否破坏性变更、后端测试通过（含覆盖率）、前端构建与 Lint 通过、UI 截图（如有）、文档更新（如适用）。
+**版本控制**: 语义化版本 `MAJOR.MINOR.PATCH`
+**发布流程**: `develop` 达到发布标准 → 创建 `develop → main` 的发布 PR → 合并后打标签 `vX.Y.Z` → 触发 CI/CD
 
-## 安全与配置提示
-- 复制并编辑 `backend/.env.example` → `backend/.env`；严禁提交密钥。
-- 关键配置：`SECRET_KEY`、外部 API Key（如 TMDB）。
-- 应用启动会创建 `runtime/logs`、`runtime/data`；在容器/宿主机上确保可写。
+## 重要注意事项
 
-## Agent 指南（中文沟通约定）
-- 默认语言：所有对话、代码评审意见、Issue/PR 描述与项目文档均使用中文。
-- 源代码：标识符仍使用英文（遵循生态惯例与工具链兼容性）；注释中文优先、保持简洁准确。
-- 提交信息：信息必须使用中文表达，遵循 Conventional Commits 结构（type(scope): subject）。
-- 模板：Issue/PR 模板已提供中文版本，按模板填写即可。
+- **中文内容优先**: 所有功能优先考虑中文语言支持
+- **异步模式**: 后端广泛使用 async/await 进行外部服务调用
+- **错误处理**: 整个代码库中使用一致的元组返回模式
+- **测试**: 后端目标 70% 覆盖率，前端专注于手动测试
+- **安全**: 敏感配置在数据库中加密存储
+- **环境配置**: 复制 `backend/.env.example` → `backend/.env`，严禁提交密钥
