@@ -114,7 +114,7 @@ class ProwlarrClient(ExternalServiceClient):
 
         params: Dict[str, object] = {
             "type": type or "search",
-            "q": query.strip(),  # Prowlarr API 使用 'q' 参数而不是 'query'
+            "query": query.strip(),  # Prowlarr API 使用 'q' 参数而不是 'query'
         }
         if normalized_indexers:
             params["indexerIds"] = normalized_indexers
