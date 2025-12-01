@@ -23,6 +23,7 @@ from .tmdb import (
 from .prowlarr import (
     ProwlarrSearchQuery,
     ProwlarrSearchResponse,
+    parse_search_query,
 )
 
 __all__ = [
@@ -42,4 +43,5 @@ __all__ = [
     "TMDBDetailsResponse",
     "ProwlarrSearchQuery",
     "ProwlarrSearchResponse",
+    "parse_search_query",
 ]

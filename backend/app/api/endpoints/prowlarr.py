@@ -2,13 +2,13 @@
 Prowlarr 搜索端点
 """
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.endpoints.auth import get_current_user
-from app.api.schemas import ProwlarrSearchQuery, ProwlarrSearchResponse
+from app.api.schemas import ProwlarrSearchQuery, ProwlarrSearchResponse, parse_search_query
 from app.db import crud_config
 from app.db.database import get_db
 from app.services.clients import ProwlarrClient, make_client
@@ -95,7 +95,7 @@ async def get_prowlarr_client(db: AsyncSession = Depends(get_db)) -> ProwlarrCli
     },
 )
 async def prowlarr_search(
-    params: ProwlarrSearchQuery = Depends(),
+    params: Annotated[ProwlarrSearchQuery, Depends(parse_search_query)],
     client: ProwlarrClient = Depends(get_prowlarr_client),
     current_user=Depends(get_current_user),
 ):
