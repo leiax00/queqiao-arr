@@ -16,6 +16,7 @@ class ServiceConfigOut(BaseModel):
     url: str = Field(description="服务基础URL")
     api_key_masked: Optional[str] = Field(default=None, description="API Key 掩码，仅展示末4位")
     username: Optional[str] = Field(default=None, description="用户名（可选）")
+    timeout: Optional[int] = Field(default=None, description="请求超时时间（秒）")
     is_active: bool = Field(description="是否启用")
     extra_config: Optional[Dict[str, Any]] = Field(default=None, description="额外配置（JSON 反序列化）")
     created_at: Optional[str] = Field(default=None, description="创建时间 ISO8601")
@@ -50,6 +51,7 @@ class ServiceConfigCreate(BaseModel):
     api_key: Optional[str] = Field(default=None, description="API Key（可选）")
     username: Optional[str] = Field(default=None, description="用户名（可选）")
     password: Optional[str] = Field(default=None, description="密码（可选）")
+    timeout: Optional[int] = Field(default=None, ge=5, le=600, description="请求超时时间（秒，5-600秒）")
     extra_config: Optional[Dict[str, Any]] = Field(default=None, description="额外配置（JSON）")
     is_active: bool = Field(default=True, description="是否启用")
 
@@ -73,6 +75,7 @@ class ServiceConfigUpdate(BaseModel):
     api_key: Optional[str] = Field(default=None, description="API Key")
     username: Optional[str] = Field(default=None, description="用户名")
     password: Optional[str] = Field(default=None, description="密码")
+    timeout: Optional[int] = Field(default=None, ge=5, le=600, description="请求超时时间（秒，5-600秒）")
     extra_config: Optional[Dict[str, Any]] = Field(default=None, description="额外配置（JSON）")
     is_active: Optional[bool] = Field(default=None, description="是否启用")
 
@@ -94,6 +97,7 @@ class TestConnectionByBody(BaseModel):
     api_key: Optional[str] = Field(default=None, description="API Key（可选）")
     username: Optional[str] = Field(default=None, description="用户名（可选）")
     password: Optional[str] = Field(default=None, description="密码（可选）")
+    timeout: Optional[int] = Field(default=None, ge=5, le=600, description="请求超时时间（秒，5-600秒）")
     proxy: Optional[Dict[str, str]] = Field(default=None, description="代理配置，如 {http, https}")
 
 

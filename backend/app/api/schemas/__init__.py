@@ -20,6 +20,11 @@ from .tmdb import (
     TMDBAlternativeTitlesResponse,
     TMDBDetailsResponse,
 )
+from .prowlarr import (
+    ProwlarrSearchQuery,
+    ProwlarrSearchResponse,
+    parse_search_query,
+)
 
 __all__ = [
     "ServiceConfigOut",
@@ -36,5 +41,7 @@ __all__ = [
     "TMDBSearchResponse",
     "TMDBAlternativeTitlesResponse",
     "TMDBDetailsResponse",
+    "ProwlarrSearchQuery",
+    "ProwlarrSearchResponse",
+    "parse_search_query",
 ]
-

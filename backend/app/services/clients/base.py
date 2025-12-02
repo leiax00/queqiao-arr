@@ -82,7 +82,12 @@ class ExternalServiceClient:
         try:
             # 构建 httpx 客户端配置
             client_kwargs: Dict[str, Any] = {
-                "timeout": self.timeout,
+                "timeout": httpx.Timeout(
+                    connect=self.timeout,      # 连接超时
+                    read=self.timeout * 1.5,   # 读取超时，给搜索操作更多时间
+                    write=self.timeout,        # 写入超时
+                    pool=self.timeout,         # 连接池超时
+                ),
                 "follow_redirects": True,
             }
 
@@ -102,7 +107,12 @@ class ExternalServiceClient:
                     return True, response.text
 
         except httpx.TimeoutException as e:
-            error_msg = f"请求超时: {url}"
+            if "Read" in str(e):
+                error_msg = f"读取超时: {url} (服务器响应时间过长)"
+            elif "Connect" in str(e):
+                error_msg = f"连接超时: {url} (无法建立连接)"
+            else:
+                error_msg = f"请求超时: {url}"
             logger.error(f"{error_msg} - {str(e)}")
             return False, error_msg
 
@@ -144,7 +154,12 @@ class ExternalServiceClient:
         try:
             # 构建 httpx 客户端配置
             client_kwargs: Dict[str, Any] = {
-                "timeout": self.timeout,
+                "timeout": httpx.Timeout(
+                    connect=self.timeout,      # 连接超时
+                    read=self.timeout * 1.5,   # 读取超时，给搜索操作更多时间
+                    write=self.timeout,        # 写入超时
+                    pool=self.timeout,         # 连接池超时
+                ),
                 "follow_redirects": True,
             }
 
@@ -164,7 +179,12 @@ class ExternalServiceClient:
                     return True, response.text
 
         except httpx.TimeoutException as e:
-            error_msg = f"请求超时: {url}"
+            if "Read" in str(e):
+                error_msg = f"读取超时: {url} (服务器响应时间过长)"
+            elif "Connect" in str(e):
+                error_msg = f"连接超时: {url} (无法建立连接)"
+            else:
+                error_msg = f"请求超时: {url}"
             logger.error(f"{error_msg} - {str(e)}")
             return False, error_msg
 

@@ -180,6 +180,86 @@ class TestProwlarrClient:
         assert ok is False
         assert "失败" in note
 
+    @patch('httpx.Client')
+    def test_search_success(self, mock_client_class):
+        """测试 Prowlarr 搜索成功"""
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = [{"title": "Example"}]
+        mock_response.raise_for_status = Mock()
+
+        mock_client = MagicMock()
+        mock_client.__enter__.return_value.get.return_value = mock_response
+        mock_client_class.return_value = mock_client
+
+        client = ProwlarrClient(
+            base_url="http://localhost:9696",
+            api_key="test_key"
+        )
+        ok, data = client.search(
+            query="test",
+            indexer_ids=[1, 2],
+            categories=[5000],
+            limit=10,
+            offset=0,
+        )
+
+        assert ok is True
+        assert isinstance(data, list)
+        assert data[0]["title"] == "Example"
+
+    def test_search_query_required(self):
+        """测试 query 为空时报错"""
+        client = ProwlarrClient(
+            base_url="http://localhost:9696",
+            api_key="test_key"
+        )
+        ok, msg = client.search(query="")
+
+        assert ok is False
+        assert "query 不能为空" in msg
+
+    def test_search_invalid_params(self):
+        """测试非法参数校验"""
+        client = ProwlarrClient(
+            base_url="http://localhost:9696",
+            api_key="test_key"
+        )
+
+        ok_indexer, msg_indexer = client.search(query="a", indexer_ids=["x"])
+        ok_limit, msg_limit = client.search(query="a", limit=-1)
+
+        assert ok_indexer is False
+        assert "indexer_ids" in msg_indexer
+        assert ok_limit is False
+        assert "limit" in msg_limit
+
+    @patch('httpx.Client')
+    def test_search_http_error(self, mock_client_class):
+        """测试 HTTP 错误路径"""
+        import httpx
+
+        mock_response = Mock()
+        mock_response.status_code = 503
+        http_error = httpx.HTTPStatusError(
+            "Service Unavailable",
+            request=Mock(),
+            response=mock_response
+        )
+
+        mock_client = MagicMock()
+        mock_client.__enter__.return_value.get.side_effect = http_error
+        mock_client_class.return_value = mock_client
+
+        client = ProwlarrClient(
+            base_url="http://localhost:9696",
+            api_key="test_key"
+        )
+        ok, msg = client.search(query="test")
+
+        assert ok is False
+        assert "失败" in msg
+
 
 class TestTMDBClient:
     """TMDB 客户端测试"""
@@ -278,4 +358,3 @@ class TestBaseClient:
         )
 
         assert client.timeout == 60
-
