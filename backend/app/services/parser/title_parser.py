@@ -9,10 +9,10 @@ from __future__ import annotations
 import re
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
-from .models import ParsedTitle, TMDBAltTitle, TMDBSearchCandidate
+from .models import ParsedTitle, TMDBAltTitle, TMDBSearchCandidate, ParserConfig, ParseRule
 
 # 供匹配的常见映射
-_RESOLUTION_MAP = {
+_DEFAULT_RESOLUTION_MAP = {
     "2160P": "2160p",
     "4K": "2160p",
     "1080P": "1080p",
@@ -20,7 +20,7 @@ _RESOLUTION_MAP = {
     "480P": "480p",
 }
 
-_SOURCE_MAP = {
+_DEFAULT_SOURCE_MAP = {
     "WEB-DL": "WEB-DL",
     "WEBDL": "WEB-DL",
     "WEB": "WEB-DL",
@@ -37,7 +37,7 @@ _SOURCE_MAP = {
     "DVDRIP": "DVDRip",
 }
 
-_HDR_MAP = {
+_DEFAULT_HDR_MAP = {
     "HDR10+": "HDR10+",
     "HDR10": "HDR10",
     "HDR": "HDR",
@@ -46,7 +46,7 @@ _HDR_MAP = {
     "DV": "DolbyVision",
 }
 
-_CODEC_MAP = {
+_DEFAULT_CODEC_MAP = {
     "HEVC": "HEVC",
     "H265": "HEVC",
     "X265": "HEVC",
@@ -57,7 +57,7 @@ _CODEC_MAP = {
     "AV1": "AV1",
 }
 
-_AUDIO_MAP = {
+_DEFAULT_AUDIO_MAP = {
     "AAC": "AAC",
     "AC3": "AC3",
     "EAC3": "EAC3",
@@ -155,7 +155,7 @@ def _strip_release_group(raw_title: str) -> Tuple[Optional[str], str]:
     prefix = re.match(r"^\s*[\[\(【](.+?)[\]\)】]\s*(.*)$", text)
     if prefix:
         candidate = prefix.group(1).strip() or None
-        if candidate and candidate.upper() not in _RESOLUTION_MAP and candidate.upper() not in _HDR_MAP and candidate.upper() not in _CODEC_MAP:
+        if candidate and candidate.upper() not in _DEFAULT_RESOLUTION_MAP and candidate.upper() not in _DEFAULT_HDR_MAP and candidate.upper() not in _DEFAULT_CODEC_MAP:
             release_group = candidate
         text = prefix.group(2).strip()
 
@@ -165,7 +165,7 @@ def _strip_release_group(raw_title: str) -> Tuple[Optional[str], str]:
         # 避免误把编码/HDR 识别为组名
         if "." in candidate:
             pass
-        elif candidate.upper() not in _CODEC_MAP and candidate.upper() not in _HDR_MAP and not candidate.endswith("P"):
+        elif candidate.upper() not in _DEFAULT_CODEC_MAP and candidate.upper() not in _DEFAULT_HDR_MAP and not candidate.endswith("P"):
             release_group = release_group or candidate
             text = text[: suffix.start()].strip()
     return release_group, text
@@ -304,9 +304,9 @@ def _detect_finale(text: str) -> bool:
     return bool(re.search(r"\bEND\b|完结|全集|完結", text, flags=re.IGNORECASE))
 
 
-def _detect_resolution(text: str) -> Optional[str]:
-    for raw, normalized in _RESOLUTION_MAP.items():
-        if re.search(rf"\b{raw}\b", text, flags=re.IGNORECASE):
+def _detect_resolution(text: str, resolution_map: Dict[str, str]) -> Optional[str]:
+    for raw, normalized in resolution_map.items():
+        if re.search(rf"\b{re.escape(raw)}\b", text, flags=re.IGNORECASE):
             return normalized
     # 4K 可能连写
     if "4K" in text.upper():
@@ -314,38 +314,42 @@ def _detect_resolution(text: str) -> Optional[str]:
     return None
 
 
-def _detect_source(text: str) -> Optional[str]:
-    for raw, normalized in _SOURCE_MAP.items():
-        if re.search(rf"\b{raw}\b", text, flags=re.IGNORECASE):
+def _detect_source(text: str, source_map: Dict[str, str]) -> Optional[str]:
+    for raw, normalized in source_map.items():
+        if re.search(rf"\b{re.escape(raw)}\b", text, flags=re.IGNORECASE):
             return normalized
     return None
 
 
-def _detect_hdr(text: str) -> Optional[str]:
+def _detect_hdr(text: str, hdr_map: Dict[str, str]) -> Optional[str]:
     upper = text.upper()
-    for raw, normalized in _HDR_MAP.items():
+    for raw, normalized in hdr_map.items():
         if raw in upper:
             return normalized
     return None
 
 
-def _detect_codec(text: str) -> Optional[str]:
+def _detect_codec(text: str, codec_map: Dict[str, str]) -> Optional[str]:
     upper = text.upper()
-    for raw, normalized in _CODEC_MAP.items():
+    for raw, normalized in codec_map.items():
         if raw in upper:
             return normalized
     return None
 
 
-def _detect_audio(text: str) -> Optional[str]:
+def _detect_audio(text: str, audio_map: Dict[str, str]) -> Optional[str]:
     upper = text.upper()
-    for raw, normalized in _AUDIO_MAP.items():
+    for raw, normalized in audio_map.items():
         if raw in upper:
             return normalized
     return None
 
 
-def _detect_subtitle_and_tags(text: str) -> Tuple[List[str], List[str]]:
+def _detect_subtitle_and_tags(
+    text: str,
+    subtitle_map: Dict[str, str],
+    tag_map: Dict[str, str],
+) -> Tuple[List[str], List[str]]:
     subtitle_lang: set[str] = set()
     tags: List[str] = []
     upper = text.upper()
@@ -363,6 +367,12 @@ def _detect_subtitle_and_tags(text: str) -> Tuple[List[str], List[str]]:
         tags.append("NC")
     if "B-GLOBAL" in upper or "B-Global" in text:
         tags.append("B-Global")
+    for raw, normalized in subtitle_map.items():
+        if re.search(re.escape(raw), text, flags=re.IGNORECASE):
+            subtitle_lang.add(normalized)
+    for raw, normalized in tag_map.items():
+        if re.search(re.escape(raw), text, flags=re.IGNORECASE):
+            tags.append(normalized)
     return sorted(subtitle_lang), tags
 
 
@@ -573,17 +583,56 @@ def _calculate_confidence(
     return round(min(score, 1.0), 2)
 
 
+def _apply_rules(
+    normalized_text: str,
+    parsed: ParsedTitle,
+    rules: List[ParseRule],
+) -> ParsedTitle:
+    """
+    应用外部配置的正则规则。
+    """
+    if not rules:
+        return parsed
+    for rule in rules:
+        if not rule.enabled or not rule.pattern:
+            continue
+        if not re.search(rule.pattern, normalized_text, flags=re.IGNORECASE):
+            continue
+        target = rule.target_field
+        value = rule.value
+        if target in {"resolution", "source", "hdr", "codec", "audio", "release_group", "version", "special_type"}:
+            setattr(parsed, target, value or getattr(parsed, target))
+        elif target == "subtitle_lang" and value:
+            if value not in parsed.subtitle_lang:
+                parsed.subtitle_lang.append(value)
+        elif target == "tag" and value:
+            parsed.tags.append(value)
+        elif target == "is_finale":
+            parsed.is_finale = True
+    return parsed
+
+
 def parse_title(
     raw_title: str,
     tmdb_candidates: Optional[Sequence[Any]] = None,
     tmdb_alternative_titles: Optional[Sequence[Any]] = None,
     language_pref: Optional[List[str]] = None,
+    config: Optional[ParserConfig] = None,
 ) -> Tuple[bool, ParsedTitle | str]:
     """
     标题解析主入口。成功返回 (True, ParsedTitle)，失败返回 (False, errmsg)。
     """
     if not raw_title or not isinstance(raw_title, str) or not raw_title.strip():
         return False, "标题解析失败: 输入为空"
+
+    config = config or ParserConfig()
+    resolution_map = {**_DEFAULT_RESOLUTION_MAP, **{k.upper(): v for k, v in config.resolution_map.items()}}
+    source_map = {**_DEFAULT_SOURCE_MAP, **{k.upper(): v for k, v in config.source_map.items()}}
+    hdr_map = {**_DEFAULT_HDR_MAP, **{k.upper(): v for k, v in config.hdr_map.items()}}
+    codec_map = {**_DEFAULT_CODEC_MAP, **{k.upper(): v for k, v in config.codec_map.items()}}
+    audio_map = {**_DEFAULT_AUDIO_MAP, **{k.upper(): v for k, v in config.audio_map.items()}}
+    subtitle_map = {k.upper(): v for k, v in config.subtitle_map.items()}
+    tag_map = {k.upper(): v for k, v in config.tag_map.items()}
 
     release_group, stripped = _strip_release_group(raw_title)
     version, stripped = _strip_version(stripped)
@@ -598,12 +647,12 @@ def parse_title(
 
     special_type = _detect_special_type(normalized_text)
     is_finale = _detect_finale(normalized_text)
-    resolution = _detect_resolution(normalized_text)
-    source = _detect_source(normalized_text)
-    hdr = _detect_hdr(normalized_text)
-    codec = _detect_codec(normalized_text)
-    audio = _detect_audio(normalized_text)
-    subtitle_lang, extra_tags = _detect_subtitle_and_tags(normalized_text)
+    resolution = _detect_resolution(normalized_text, resolution_map)
+    source = _detect_source(normalized_text, source_map)
+    hdr = _detect_hdr(normalized_text, hdr_map)
+    codec = _detect_codec(normalized_text, codec_map)
+    audio = _detect_audio(normalized_text, audio_map)
+    subtitle_lang, extra_tags = _detect_subtitle_and_tags(normalized_text, subtitle_map, tag_map)
 
     base_title = _extract_base_title(normalized_text) or normalized_text
 
@@ -671,6 +720,7 @@ def parse_title(
         confidence=confidence,
         unparsed_segments=unparsed_segments,
     )
+    parsed = _apply_rules(normalized_text, parsed, config.regex_rules)
     return True, parsed
 
 
@@ -679,6 +729,7 @@ async def async_parse_title(
     tmdb_candidates: Optional[Sequence[Any]] = None,
     tmdb_alternative_titles: Optional[Sequence[Any]] = None,
     language_pref: Optional[List[str]] = None,
+    config: Optional[ParserConfig] = None,
 ) -> Tuple[bool, ParsedTitle | str]:
     """
     异步包装，便于 B-08 在协程流程中直接调用。
@@ -688,4 +739,5 @@ async def async_parse_title(
         tmdb_candidates=tmdb_candidates,
         tmdb_alternative_titles=tmdb_alternative_titles,
         language_pref=language_pref,
+        config=config,
     )

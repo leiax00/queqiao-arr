@@ -7,6 +7,34 @@ from typing import Any, List, Optional, Tuple
 from pydantic import BaseModel, Field
 
 
+class ParseRule(BaseModel):
+    """
+    解析正则规则（来自系统字典）
+    """
+
+    pattern: str
+    target_field: str
+    value: Optional[str] = None
+    priority: int = 100
+    enabled: bool = True
+    note: Optional[str] = None
+
+
+class ParserConfig(BaseModel):
+    """
+    解析配置：自定义映射和规则
+    """
+
+    resolution_map: dict[str, str] = Field(default_factory=dict)
+    source_map: dict[str, str] = Field(default_factory=dict)
+    hdr_map: dict[str, str] = Field(default_factory=dict)
+    codec_map: dict[str, str] = Field(default_factory=dict)
+    audio_map: dict[str, str] = Field(default_factory=dict)
+    subtitle_map: dict[str, str] = Field(default_factory=dict)
+    tag_map: dict[str, str] = Field(default_factory=dict)
+    regex_rules: List[ParseRule] = Field(default_factory=list)
+
+
 class TMDBSearchCandidate(BaseModel):
     """
     兼容 TMDB 搜索结果的简化结构
