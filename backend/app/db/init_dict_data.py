@@ -255,42 +255,31 @@ async def init_parser_dict_data(db: AsyncSession) -> None:
         ],
     )
     
-    # 3. 创建质量标签字典类型
-    quality_type = await crud_system_dict.create_dict_type(
+    # 3. 创建质量标签字典类型（改为幂等补充）
+    qualities = [
+        {"code": "8K", "name": "8K超高清", "value": "8K", "sort_order": 1,
+         "remark": "7680×4320分辨率",
+         "extra_data": json.dumps({"priority": 10, "resolution": "7680x4320", "kind": "builtin"})},
+        {"code": "4K", "name": "4K超高清", "value": "4K", "sort_order": 2,
+         "remark": "3840×2160分辨率（UHD）",
+         "extra_data": json.dumps({"priority": 9, "resolution": "3840x2160", "kind": "builtin"})},
+        {"code": "1080p", "name": "1080p全高清", "value": "1080p", "sort_order": 3,
+         "remark": "1920×1080分辨率（FHD）",
+         "extra_data": json.dumps({"priority": 8, "resolution": "1920x1080", "kind": "builtin"})},
+        {"code": "720p", "name": "720p高清", "value": "720p", "sort_order": 4,
+         "remark": "1280×720分辨率（HD）",
+         "extra_data": json.dumps({"priority": 7, "resolution": "1280x720", "kind": "builtin"})},
+        {"code": "480p", "name": "480p标清", "value": "480p", "sort_order": 5,
+         "remark": "720×480分辨率（SD）",
+         "extra_data": json.dumps({"priority": 6, "resolution": "720x480", "kind": "builtin"})},
+    ]
+    await _ensure_dict_type_with_items(
         db,
         code="quality",
         name="质量标签",
         remark="视频质量分类，用于资源标题解析和质量筛选，优先级：8K > 4K > 1080p > 720p > 480p",
-        is_active=True,
+        items=qualities,
     )
-    
-    # 添加质量标签选项
-    qualities = [
-        {"code": "8K", "name": "8K超高清", "value": "8K", "sort_order": 1,
-         "remark": "7680×4320分辨率",
-         "extra_data": json.dumps({"priority": 10, "resolution": "7680x4320"})},
-        {"code": "4K", "name": "4K超高清", "value": "4K", "sort_order": 2,
-         "remark": "3840×2160分辨率（UHD）",
-         "extra_data": json.dumps({"priority": 9, "resolution": "3840x2160"})},
-        {"code": "1080p", "name": "1080p全高清", "value": "1080p", "sort_order": 3,
-         "remark": "1920×1080分辨率（FHD）",
-         "extra_data": json.dumps({"priority": 8, "resolution": "1920x1080"})},
-        {"code": "720p", "name": "720p高清", "value": "720p", "sort_order": 4,
-         "remark": "1280×720分辨率（HD）",
-         "extra_data": json.dumps({"priority": 7, "resolution": "1280x720"})},
-        {"code": "480p", "name": "480p标清", "value": "480p", "sort_order": 5,
-         "remark": "720×480分辨率（SD）",
-         "extra_data": json.dumps({"priority": 6, "resolution": "720x480"})},
-    ]
-    
-    for quality in qualities:
-        await crud_system_dict.create_dict_item(
-            db,
-            dict_type_code="quality",
-            **quality,
-            is_active=True,
-        )
-    
-    print(f"  ✓ 创建质量标签字典类型及 {len(qualities)} 个选项")
+    print(f"  ✓ 创建/补充质量标签字典类型及 {len(qualities)} 个选项")
     
     print("✅ 字典数据初始化完成！")
