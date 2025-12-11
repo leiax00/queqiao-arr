@@ -626,11 +626,11 @@ def parse_title(
         return False, "标题解析失败: 输入为空"
 
     config = config or ParserConfig()
-    resolution_map = {**_DEFAULT_RESOLUTION_MAP, **{k.upper(): v for k, v in config.resolution_map.items()}}
-    source_map = {**_DEFAULT_SOURCE_MAP, **{k.upper(): v for k, v in config.source_map.items()}}
-    hdr_map = {**_DEFAULT_HDR_MAP, **{k.upper(): v for k, v in config.hdr_map.items()}}
-    codec_map = {**_DEFAULT_CODEC_MAP, **{k.upper(): v for k, v in config.codec_map.items()}}
-    audio_map = {**_DEFAULT_AUDIO_MAP, **{k.upper(): v for k, v in config.audio_map.items()}}
+    resolution_map = {k.upper(): v for k, v in config.resolution_map.items()} or _DEFAULT_RESOLUTION_MAP
+    source_map = {k.upper(): v for k, v in config.source_map.items()} or _DEFAULT_SOURCE_MAP
+    hdr_map = {k.upper(): v for k, v in config.hdr_map.items()} or _DEFAULT_HDR_MAP
+    codec_map = {k.upper(): v for k, v in config.codec_map.items()} or _DEFAULT_CODEC_MAP
+    audio_map = {k.upper(): v for k, v in config.audio_map.items()} or _DEFAULT_AUDIO_MAP
     subtitle_map = {k.upper(): v for k, v in config.subtitle_map.items()}
     tag_map = {k.upper(): v for k, v in config.tag_map.items()}
 

@@ -37,25 +37,30 @@ async def _load_map(
     - DictItem.extra_data: JSON，可包含 aliases: list[str] 作为更多匹配 token。
     """
     items = await crud_system_dict.get_dict_options(db, dict_type_code=dict_type_code)
-    mapping: Dict[str, str] = {}
+    builtin_map: Dict[str, str] = {}
+    user_map: Dict[str, str] = {}
     for it in items:
         normalized = (it.value or "").strip()
         if not normalized:
             continue
-        for token in {it.code, it.name, it.value}:
-            if token:
-                mapping[token.upper()] = normalized
+        extra_kind = "user"
+        aliases: list[str] = []
         if it.extra_data:
             try:
                 data = json.loads(it.extra_data)
-                aliases = data.get("aliases") if isinstance(data, dict) else None
-                if isinstance(aliases, list):
-                    for alias in aliases:
-                        if isinstance(alias, str) and alias.strip():
-                            mapping[alias.strip().upper()] = normalized
+                if isinstance(data, dict):
+                    aliases = data.get("aliases") or []
+                    extra_kind = data.get("kind") or "user"
             except Exception:
-                continue
-    return mapping
+                pass
+        target = user_map if extra_kind != "builtin" else builtin_map
+        for token in {it.code, it.name, it.value, *(aliases or [])}:
+            if token:
+                target[str(token).strip().upper()] = normalized
+    merged: Dict[str, str] = {}
+    merged.update(builtin_map)
+    merged.update(user_map)  # 用户自定义覆盖同名 token
+    return merged
 
 
 async def _load_rules(db: AsyncSession) -> List[ParseRule]:
