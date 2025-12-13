@@ -11,63 +11,6 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 from .models import ParsedTitle, TMDBAltTitle, TMDBSearchCandidate, ParserConfig, ParseRule
 
-# 供匹配的常见映射
-_DEFAULT_RESOLUTION_MAP = {
-    "2160P": "2160p",
-    "4K": "2160p",
-    "1080P": "1080p",
-    "720P": "720p",
-    "480P": "480p",
-}
-
-_DEFAULT_SOURCE_MAP = {
-    "WEB-DL": "WEB-DL",
-    "WEBDL": "WEB-DL",
-    "WEB": "WEB-DL",
-    "WEBRIP": "WEBRip",
-    "WEB-RIP": "WEBRip",
-    "WEBrip": "WEBRip",
-    "BLURAY": "BluRay",
-    "BDRIP": "BluRay",
-    "BDRip": "BluRay",
-    "B-Global": "WEB-DL",
-    "B-GLOBAL": "WEB-DL",
-    "B-GLOBAL]": "WEB-DL",
-    "HDTV": "HDTV",
-    "DVDRIP": "DVDRip",
-}
-
-_DEFAULT_HDR_MAP = {
-    "HDR10+": "HDR10+",
-    "HDR10": "HDR10",
-    "HDR": "HDR",
-    "DOLBYVISION": "DolbyVision",
-    "DOVI": "DolbyVision",
-    "DV": "DolbyVision",
-}
-
-_DEFAULT_CODEC_MAP = {
-    "HEVC": "HEVC",
-    "H265": "HEVC",
-    "X265": "HEVC",
-    "H.265": "HEVC",
-    "H264": "H264",
-    "X264": "H264",
-    "H.264": "H264",
-    "AV1": "AV1",
-}
-
-_DEFAULT_AUDIO_MAP = {
-    "AAC": "AAC",
-    "AC3": "AC3",
-    "EAC3": "EAC3",
-    "DDP": "EAC3",
-    "FLAC": "FLAC",
-    "DTS-HD": "DTS-HD",
-    "DTS": "DTS",
-    "TRUEHD": "TrueHD",
-}
-
 _SPECIAL_TYPES = ["SP", "OVA", "OAD", "PV", "NCOP", "NCED", "TRAILER"]
 
 _CHINESE_DIGITS = {
@@ -145,17 +88,30 @@ def _normalize_text(raw_title: str) -> str:
     return text.strip()
 
 
-def _strip_release_group(raw_title: str) -> Tuple[Optional[str], str]:
+def _strip_release_group(
+    raw_title: str,
+    resolution_tokens: Iterable[str],
+    hdr_tokens: Iterable[str],
+    codec_tokens: Iterable[str],
+) -> Tuple[Optional[str], str]:
     """
     提取发布组（前缀括号或结尾 -Group），并返回剩余文本。
     """
     release_group = None
     text = raw_title.strip()
+    resolution_tokens = {tok.upper() for tok in resolution_tokens}
+    hdr_tokens = {tok.upper() for tok in hdr_tokens}
+    codec_tokens = {tok.upper() for tok in codec_tokens}
 
     prefix = re.match(r"^\s*[\[\(【](.+?)[\]\)】]\s*(.*)$", text)
     if prefix:
         candidate = prefix.group(1).strip() or None
-        if candidate and candidate.upper() not in _DEFAULT_RESOLUTION_MAP and candidate.upper() not in _DEFAULT_HDR_MAP and candidate.upper() not in _DEFAULT_CODEC_MAP:
+        if (
+            candidate
+            and candidate.upper() not in resolution_tokens
+            and candidate.upper() not in hdr_tokens
+            and candidate.upper() not in codec_tokens
+        ):
             release_group = candidate
         text = prefix.group(2).strip()
 
@@ -165,7 +121,11 @@ def _strip_release_group(raw_title: str) -> Tuple[Optional[str], str]:
         # 避免误把编码/HDR 识别为组名
         if "." in candidate:
             pass
-        elif candidate.upper() not in _DEFAULT_CODEC_MAP and candidate.upper() not in _DEFAULT_HDR_MAP and not candidate.endswith("P"):
+        elif (
+            candidate.upper() not in codec_tokens
+            and candidate.upper() not in hdr_tokens
+            and not candidate.endswith("P")
+        ):
             release_group = release_group or candidate
             text = text[: suffix.start()].strip()
     return release_group, text
@@ -626,15 +586,20 @@ def parse_title(
         return False, "标题解析失败: 输入为空"
 
     config = config or ParserConfig()
-    resolution_map = {k.upper(): v for k, v in config.resolution_map.items()} or _DEFAULT_RESOLUTION_MAP
-    source_map = {k.upper(): v for k, v in config.source_map.items()} or _DEFAULT_SOURCE_MAP
-    hdr_map = {k.upper(): v for k, v in config.hdr_map.items()} or _DEFAULT_HDR_MAP
-    codec_map = {k.upper(): v for k, v in config.codec_map.items()} or _DEFAULT_CODEC_MAP
-    audio_map = {k.upper(): v for k, v in config.audio_map.items()} or _DEFAULT_AUDIO_MAP
+    resolution_map = {k.upper(): v for k, v in config.resolution_map.items()}
+    source_map = {k.upper(): v for k, v in config.source_map.items()}
+    hdr_map = {k.upper(): v for k, v in config.hdr_map.items()}
+    codec_map = {k.upper(): v for k, v in config.codec_map.items()}
+    audio_map = {k.upper(): v for k, v in config.audio_map.items()}
     subtitle_map = {k.upper(): v for k, v in config.subtitle_map.items()}
     tag_map = {k.upper(): v for k, v in config.tag_map.items()}
 
-    release_group, stripped = _strip_release_group(raw_title)
+    release_group, stripped = _strip_release_group(
+        raw_title,
+        resolution_tokens=resolution_map.keys(),
+        hdr_tokens=hdr_map.keys(),
+        codec_tokens=codec_map.keys(),
+    )
     version, stripped = _strip_version(stripped)
     normalized_text = _normalize_text(stripped)
 
