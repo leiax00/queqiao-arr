@@ -2,38 +2,18 @@
 数据库连接和会话管理
 """
 
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
-from sqlalchemy.orm import DeclarativeBase
-from sqlalchemy import MetaData
 from pathlib import Path
 from urllib.parse import urlparse
 
+from sqlalchemy import MetaData
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from sqlalchemy.orm import DeclarativeBase
+
 from app.core.config import settings
-
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-
-
-def normalize_sqlite_url(url: str) -> str:
-    """
-    将 SQLite URL 规范为绝对路径，确保目录存在，避免文件无法打开。
-    """
-    parsed = urlparse(url)
-    if not parsed.scheme.startswith("sqlite"):
-        return url
-    path = parsed.path.lstrip("/")
-    db_path = Path(path)
-    if not db_path.is_absolute():
-        db_path = PROJECT_ROOT / db_path
-    if db_path.parent and not db_path.parent.exists():
-        db_path.parent.mkdir(parents=True, exist_ok=True)
-    return f"{parsed.scheme}:///{db_path.as_posix()}"
-
-
-NORMALIZED_DATABASE_URL = normalize_sqlite_url(settings.DATABASE_URL)
 
 # 创建异步数据库引擎
 engine = create_async_engine(
-    NORMALIZED_DATABASE_URL,
+    settings.DATABASE_URL,
     echo=settings.DEBUG,
     future=True,
     pool_pre_ping=True,
@@ -67,7 +47,7 @@ _ensure_sqlite_dir(settings.DATABASE_URL)
 
 class Base(DeclarativeBase):
     """数据库模型基类"""
-    
+
     metadata = MetaData(
         naming_convention={
             "ix": "ix_%(column_0_label)s",
