@@ -1,11 +1,42 @@
 import pytest
 
-from app.services.parser import async_parse_title, parse_title
+from app.services.parser import ParserConfig, async_parse_title, parse_title
 
 
-def test_parse_single_episode_with_quality():
+@pytest.fixture(scope="module")
+def default_config():
+    return ParserConfig(
+        resolution_map={
+            "2160P": "2160p",
+            "4K": "2160p",
+            "1080P": "1080p",
+            "720P": "720p",
+        },
+        source_map={
+            "WEB-DL": "WEB-DL",
+            "WEBRIP": "WEBRip",
+            "WEB": "WEB",
+        },
+        hdr_map={
+            "HDR": "HDR",
+            "HDR10": "HDR10",
+            "HDR10+": "HDR10+",
+        },
+        codec_map={
+            "HEVC": "HEVC",
+            "H265": "HEVC",
+            "H264": "H264",
+            "AV1": "AV1",
+        },
+        audio_map={"AAC": "AAC"},
+        subtitle_map={"CHS": "chs", "CHT": "cht"},
+        tag_map={"B-GLOBAL": "B-Global"},
+    )
+
+
+def test_parse_single_episode_with_quality(default_config):
     raw = "[桜都字幕组&LoliHouse] 斗破苍穹 年番 - 118 [WebRip 1080p HEVC-10bit AAC][简繁内封]"
-    ok, parsed = parse_title(raw)
+    ok, parsed = parse_title(raw, config=default_config)
     assert ok, parsed
     assert parsed.release_group == "桜都字幕组&LoliHouse"
     assert parsed.episodes == [118]
@@ -17,9 +48,9 @@ def test_parse_single_episode_with_quality():
     assert parsed.confidence > 0.5
 
 
-def test_parse_chinese_season_and_episode():
+def test_parse_chinese_season_and_episode(default_config):
     raw = "[喵萌奶茶屋&LoliHouse] 凡人修仙传 S03 - 24 [WebRip 1080p HEVC AAC][简体]"
-    ok, parsed = parse_title(raw)
+    ok, parsed = parse_title(raw, config=default_config)
     assert ok, parsed
     assert parsed.season == 3
     assert parsed.episodes == [24]
@@ -27,9 +58,9 @@ def test_parse_chinese_season_and_episode():
     assert parsed.subtitle_lang == ["chs"]
 
 
-def test_parse_finale_and_release_group_suffix():
+def test_parse_finale_and_release_group_suffix(default_config):
     raw = "【1080p】镇魂街.第三季.EP10.END.Web-DL.H264.AAC-YSJ"
-    ok, parsed = parse_title(raw)
+    ok, parsed = parse_title(raw, config=default_config)
     assert ok, parsed
     assert parsed.season == 3
     assert parsed.episodes == [10]
@@ -39,7 +70,7 @@ def test_parse_finale_and_release_group_suffix():
     assert parsed.codec == "H264"
 
 
-def test_parse_alias_matching_with_tmdb():
+def test_parse_alias_matching_with_tmdb(default_config):
     raw = "[Lilith-Raws] 伍六七之暗影宿命 / Scissor Seven S04 - 07 [B-Global][1080p][AV1][CHS]"
     alt_titles = [
         {"tv_id": 1234, "titles": [{"title": "伍六七之暗影宿命", "country": "CN"}]},
@@ -47,7 +78,12 @@ def test_parse_alias_matching_with_tmdb():
     candidates = [
         {"id": 1234, "name": "Scissor Seven", "original_name": "Cike Wuliuqi"},
     ]
-    ok, parsed = parse_title(raw, tmdb_candidates=candidates, tmdb_alternative_titles=alt_titles)
+    ok, parsed = parse_title(
+        raw,
+        tmdb_candidates=candidates,
+        tmdb_alternative_titles=alt_titles,
+        config=default_config,
+    )
     assert ok, parsed
     assert parsed.tmdb_id == 1234
     assert parsed.matched_title in {"伍六七之暗影宿命", "Scissor Seven"}
@@ -56,9 +92,9 @@ def test_parse_alias_matching_with_tmdb():
     assert parsed.subtitle_lang == ["chs"]
 
 
-def test_parse_hdr_and_range():
+def test_parse_hdr_and_range(default_config):
     raw = "武庚纪.第08话.国粤双语.繁體內嵌.4K.HDR10+.WEB-DL.H265"
-    ok, parsed = parse_title(raw)
+    ok, parsed = parse_title(raw, config=default_config)
     assert ok, parsed
     assert parsed.episodes == [8]
     assert parsed.resolution == "2160p"
@@ -71,7 +107,13 @@ def test_parse_hdr_and_range():
 @pytest.mark.asyncio
 async def test_async_parse_with_episode_range():
     raw = "China Joy 2024 - 01-02合集 4K WEB-DL H265 HDR V2"
-    ok, parsed = await async_parse_title(raw)
+    config = ParserConfig(
+        resolution_map={"4K": "2160p"},
+        source_map={"WEB-DL": "WEB-DL"},
+        hdr_map={"HDR": "HDR"},
+        codec_map={"H265": "HEVC"},
+    )
+    ok, parsed = await async_parse_title(raw, config=config)
     assert ok, parsed
     assert parsed.episode_range == (1, 2)
     assert parsed.episodes == [1, 2]
@@ -79,3 +121,35 @@ async def test_async_parse_with_episode_range():
     assert parsed.resolution == "2160p"
     assert parsed.hdr == "HDR"
     assert parsed.source == "WEB-DL"
+
+
+def test_parse_fail_without_episode():
+    raw = "镇魂街 WEB-DL 1080p"
+    ok, err = parse_title(raw)
+    assert ok is False
+    assert "集数" in err
+
+
+def test_parse_with_custom_config_and_rules():
+    from app.services.parser import ParserConfig, ParseRule
+
+    config = ParserConfig(
+        resolution_map={"FHD": "1080p"},
+        source_map={"BGL": "WEB"},
+        hdr_map={},
+        codec_map={},
+        audio_map={},
+        subtitle_map={},
+        tag_map={},
+        regex_rules=[
+            ParseRule(pattern="SPECIAL", target_field="tag", value="special", priority=10),
+            ParseRule(pattern="BGL", target_field="source", value="WEB-DL", priority=20),
+        ],
+    )
+    raw = "My Show SPECIAL FHD EP01 BGL"
+    ok, parsed = parse_title(raw, config=config)
+    assert ok, parsed
+    assert parsed.episodes == [1]
+    assert parsed.resolution == "1080p"
+    assert parsed.source == "WEB-DL"
+    assert "special" in parsed.tags

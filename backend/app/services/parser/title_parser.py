@@ -283,7 +283,8 @@ def _detect_source(text: str, source_map: Dict[str, str]) -> Optional[str]:
 
 def _detect_hdr(text: str, hdr_map: Dict[str, str]) -> Optional[str]:
     upper = text.upper()
-    for raw, normalized in hdr_map.items():
+    # 按 token 长度倒序，避免 HDR10+ 被 HDR 提前命中
+    for raw, normalized in sorted(hdr_map.items(), key=lambda kv: len(kv[0]), reverse=True):
         if raw in upper:
             return normalized
     return None
