@@ -5,6 +5,8 @@
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy import MetaData
+from pathlib import Path
+from urllib.parse import urlparse
 
 from app.core.config import settings
 
@@ -22,6 +24,24 @@ AsyncSessionLocal = async_sessionmaker(
     class_=AsyncSession,
     expire_on_commit=False,
 )
+
+
+def _ensure_sqlite_dir(url: str) -> None:
+    """
+    当使用 SQLite 时，确保数据库文件所在目录存在。
+    """
+    parsed = urlparse(url)
+    if parsed.scheme.startswith("sqlite"):
+        path = parsed.path
+        # aiosqlite URL 形如 sqlite+aiosqlite:///./queqiao.db
+        if path.startswith("/"):
+            path = path.lstrip("/")
+        db_path = Path(path)
+        if db_path.parent and not db_path.parent.exists():
+            db_path.parent.mkdir(parents=True, exist_ok=True)
+
+
+_ensure_sqlite_dir(settings.DATABASE_URL)
 
 
 class Base(DeclarativeBase):
