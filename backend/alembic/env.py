@@ -12,7 +12,7 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.append(str(ROOT_DIR))
 
 from app.core.config import settings  # noqa: E402
-from app.db.database import Base  # noqa: E402
+from app.db.database import Base, normalize_sqlite_url  # noqa: E402
 
 config = context.config
 
@@ -27,7 +27,7 @@ def _sync_url(async_url: str) -> str:
 
 
 if not config.get_main_option("sqlalchemy.url"):
-    config.set_main_option("sqlalchemy.url", _sync_url(settings.DATABASE_URL))
+    config.set_main_option("sqlalchemy.url", _sync_url(normalize_sqlite_url(settings.DATABASE_URL)))
 
 target_metadata = Base.metadata
 
