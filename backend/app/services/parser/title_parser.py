@@ -238,7 +238,7 @@ def _detect_episodes(text: str) -> Tuple[List[int], Optional[Tuple[int, int]], O
             num = int(match.group("num"))
         except ValueError:
             continue
-        if num in {2160, 1080, 720, 480} or num >= 300:
+        if num in {2160, 1080, 720, 480} or num >= 2000:
             continue
         if _overlaps(match.span("num"), season_spans):
             continue
@@ -262,6 +262,18 @@ def _detect_special_type(text: str) -> Optional[str]:
 
 def _detect_finale(text: str) -> bool:
     return bool(re.search(r"\bEND\b|完结|全集|完結", text, flags=re.IGNORECASE))
+
+
+def _detect_bit_depth(text: str) -> Optional[str]:
+    """
+    识别位深（如 10bit, 8bit）。
+    """
+    match = re.search(r"\b(?P<bit>10|8)\s?bit\b", text, flags=re.IGNORECASE)
+    if match:
+        return f"{match.group('bit')}bit"
+    if re.search(r"\bHI10P\b", text, flags=re.IGNORECASE):
+        return "10bit"
+    return None
 
 
 def _detect_resolution(text: str, resolution_map: Dict[str, str]) -> Optional[str]:
@@ -561,7 +573,7 @@ def _apply_rules(
             continue
         target = rule.target_field
         value = rule.value
-        if target in {"resolution", "source", "hdr", "codec", "audio", "release_group", "version", "special_type"}:
+        if target in {"resolution", "source", "hdr", "codec", "audio", "release_group", "version", "special_type", "bit_depth"}:
             setattr(parsed, target, value or getattr(parsed, target))
         elif target == "subtitle_lang" and value:
             if value not in parsed.subtitle_lang:
@@ -618,6 +630,7 @@ def parse_title(
     hdr = _detect_hdr(normalized_text, hdr_map)
     codec = _detect_codec(normalized_text, codec_map)
     audio = _detect_audio(normalized_text, audio_map)
+    bit_depth = _detect_bit_depth(stripped)  # 在原始剥离后的文本中找，避免被标准化破坏
     subtitle_lang, extra_tags = _detect_subtitle_and_tags(normalized_text, subtitle_map, tag_map)
 
     base_title = _extract_base_title(normalized_text) or normalized_text
@@ -629,8 +642,8 @@ def parse_title(
         language_pref=language_pref,
     )
 
-    # 集数缺失时返回可读错误
-    if not episodes and not episode_range:
+    # 集数缺失时，如果不是电影或特殊类型，返回可读错误
+    if not episodes and not episode_range and not special_type:
         return False, "标题解析失败: 未能识别集数信息"
 
     recognized_tokens: List[str] = [
@@ -639,6 +652,7 @@ def parse_title(
         hdr,
         codec,
         audio,
+        bit_depth,
         version,
         special_type,
         "END" if is_finale else "",
@@ -682,6 +696,7 @@ def parse_title(
         subtitle_lang=subtitle_lang,
         release_group=release_group,
         version=version,
+        bit_depth=bit_depth,
         tags=extra_tags,
         confidence=confidence,
         unparsed_segments=unparsed_segments,

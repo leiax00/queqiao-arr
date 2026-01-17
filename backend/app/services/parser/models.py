@@ -80,5 +80,6 @@ class ParsedTitle(BaseModel):
     release_group: Optional[str] = None
     version: Optional[str] = None
     tags: List[str] = Field(default_factory=list)
+    bit_depth: Optional[str] = None
     confidence: float = 0.0
     unparsed_segments: List[str] = Field(default_factory=list)

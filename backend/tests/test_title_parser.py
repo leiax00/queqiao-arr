@@ -44,6 +44,7 @@ def test_parse_single_episode_with_quality(default_config):
     assert parsed.source == "WEBRip"
     assert parsed.codec == "HEVC"
     assert parsed.audio == "AAC"
+    assert parsed.bit_depth == "10bit"
     assert set(parsed.subtitle_lang) == {"chs", "cht"}
     assert parsed.confidence > 0.5
 
@@ -153,3 +154,25 @@ def test_parse_with_custom_config_and_rules():
     assert parsed.resolution == "1080p"
     assert parsed.source == "WEB-DL"
     assert "special" in parsed.tags
+
+
+def test_parse_long_episode_and_bit_depth(default_config):
+    # 测试位深和高集数
+    raw = "[LoliHouse] 斗破苍穹 年番 - 500 [WebRip 1080p HEVC-10bit AAC]"
+    ok, parsed = parse_title(raw, config=default_config)
+    assert ok, parsed
+    assert parsed.episodes == [500]
+    assert parsed.bit_depth == "10bit"
+    assert parsed.codec == "HEVC"
+
+    # 测试 8K 和 AVC
+    config_8k = default_config.model_copy()
+    config_8k.resolution_map["8K"] = "8k"
+    config_8k.codec_map["AVC"] = "H264"
+    raw_8k = "[Group] My Movie EP01 [WebRip 8K AVC1 10bit]"
+    ok, parsed = parse_title(raw_8k, config=config_8k)
+    assert ok, parsed
+    assert parsed.resolution == "8k"
+    assert parsed.codec == "H264"
+    assert parsed.bit_depth == "10bit"
+    assert parsed.episodes == [1]

@@ -28,6 +28,7 @@ DICT_TYPES = [
 DICT_ITEMS = {
     "title_parser.resolution": [
         ("2160P", "2160p", "2160p", 1, '{"aliases":["4K"],"kind":"builtin"}'),
+        ("8K", "8k", "8k", 0, '{"aliases":["8K","7680p"],"kind":"builtin"}'),
         ("1080P", "1080p", "1080p", 2, '{"aliases":[],"kind":"builtin"}'),
         ("720P", "720p", "720p", 3, '{"aliases":[],"kind":"builtin"}'),
         ("480P", "480p", "480p", 4, '{"aliases":[],"kind":"builtin"}'),
@@ -48,7 +49,7 @@ DICT_ITEMS = {
     ],
     "title_parser.codec": [
         ("HEVC", "HEVC", "HEVC", 1, '{"aliases":["H265","X265","H.265"],"kind":"builtin"}'),
-        ("H264", "H264", "H264", 2, '{"aliases":["X264","H.264"],"kind":"builtin"}'),
+        ("H264", "H264", "H264", 2, '{"aliases":["X264","H.264","AVC","AVC1"],"kind":"builtin"}'),
         ("AV1", "AV1", "AV1", 3, '{"aliases":[],"kind":"builtin"}'),
     ],
     "title_parser.audio": [
