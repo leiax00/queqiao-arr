@@ -13,7 +13,7 @@ from pathlib import Path
 from app.core.config import settings
 from app.api.routes import api_router
 from app.db.database import create_tables, AsyncSessionLocal
-from app.db.init_dict_data import init_dict_data
+from app.db.migrate import run_db_migrations
 
 
 @asynccontextmanager
@@ -35,13 +35,9 @@ async def lifespan(app: FastAPI):
     # 创建数据库表
     await create_tables()
     print("📊 数据库表创建完成")
-    
-    # 初始化字典数据
-    async with AsyncSessionLocal() as session:
-        try:
-            await init_dict_data(session)
-        except Exception as e:
-            print(f"⚠️  字典数据初始化失败: {e}")
+
+    # 运行 Alembic 迁移（包含数据种子）
+    await run_db_migrations()
     
     yield
     

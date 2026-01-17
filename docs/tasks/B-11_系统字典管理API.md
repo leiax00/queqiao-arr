@@ -379,7 +379,7 @@ class DictItem(Base):
 - [x] API 端点实现（`api/endpoints/dict.py`）
 - [x] 路由注册（`api/routes.py`）
 - [x] Swagger 注释完善
-- [x] 初始化数据脚本（`db/init_dict_data.py`）
+- [x] 初始化数据脚本（改为 Alembic 数据迁移：`alembic/versions/*seed*_dicts.py`）
 - [ ] 单元测试（`tests/test_dict.py`）
 - [x] 与前端 FE-07 联调通过 ✅ **2025-10-22 完成**
 
@@ -416,4 +416,3 @@ class DictItem(Base):
 - 统一响应工具：`backend/app/utils/response.py`
 - 鉴权依赖：`backend/app/core/security.py` 与 `backend/app/api/dependencies.py`
 - 数据库模型参考：`backend/app/models/config.py`、`backend/app/models/user.py`
-
