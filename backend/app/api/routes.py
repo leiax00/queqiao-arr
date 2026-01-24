@@ -4,7 +4,7 @@ API路由汇总
 
 from fastapi import APIRouter
 
-from app.api.endpoints import auth, config, health, system_dict, tmdb, prowlarr
+from app.api.endpoints import auth, config, health, system_dict, tmdb, prowlarr, torznab
 
 # 创建主路由器
 api_router = APIRouter()
@@ -16,3 +16,4 @@ api_router.include_router(config.router, prefix="/config", tags=["配置管理"]
 api_router.include_router(system_dict.router, prefix="/dict", tags=["字典管理"])
 api_router.include_router(tmdb.router, prefix="/tmdb", tags=["TMDB"])
 api_router.include_router(prowlarr.router, prefix="/prowlarr", tags=["Prowlarr"])
+api_router.include_router(torznab.router, prefix="/torznab", tags=["Torznab"])
