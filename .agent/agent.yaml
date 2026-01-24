@@ -4,3 +4,5 @@ skills: []
 
 workflows:
   - smart-commit
+  - smart-pr
+  - start-task
