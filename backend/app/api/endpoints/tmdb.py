@@ -66,11 +66,12 @@ async def get_tmdb_client(db: AsyncSession = Depends(get_db)) -> TMDBClient:
         api_key=api_key,
         proxies=proxies,
         timeout=10,
-        default_language=default_language or None,
-        default_region=default_region or None,
-        default_include_adult=default_include_adult,
     )
     assert isinstance(client, TMDBClient)
+
+    client.default_language = default_language or None
+    client.default_region = default_region or None
+    client.default_include_adult = default_include_adult
     return client
 
 

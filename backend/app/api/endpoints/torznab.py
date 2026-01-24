@@ -1,8 +1,9 @@
 from typing import Optional
 from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.api import deps
-from app.services.torznab.service import get_torznab_caps, map_results_to_torznab_response
+
+from app.db.database import get_db
+from app.services.torznab.service import get_torznab_caps
 from app.services.torznab.xml_builder import build_caps_xml, build_search_rss_xml
 
 router = APIRouter()
@@ -15,7 +16,7 @@ async def torznab_api(
     ep: Optional[int] = Query(None, description="集号"),
     offset: int = Query(0, description="偏移量"),
     limit: int = Query(100, description="限制数量"),
-    db: AsyncSession = Depends(deps.get_db),
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Torznab API 入口，兼容 Sonarr/Radarr。
