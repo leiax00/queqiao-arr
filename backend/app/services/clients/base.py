@@ -131,6 +131,74 @@ class ExternalServiceClient:
             logger.error(f"请求 {url} 时发生未知错误: {str(e)}")
             return False, error_msg
 
+    async def _get_async(
+            self,
+            path: str,
+            params: Optional[Dict[str, Any]] = None,
+            headers: Optional[Dict[str, str]] = None,
+    ) -> tuple[bool, Any]:
+        """
+        发送 GET 请求（异步）
+
+        Args:
+            path: API 路径（例如: /api/v3/system/status）
+            params: 查询参数
+            headers: 额外的请求头
+
+        Returns:
+            (成功标志, 响应数据或错误消息)
+        """
+        url = f"{self.base_url}{path}"
+        request_headers = self._build_headers(headers)
+
+        try:
+            client_kwargs: Dict[str, Any] = {
+                "timeout": httpx.Timeout(
+                    connect=self.timeout,
+                    read=self.timeout * 1.5,
+                    write=self.timeout,
+                    pool=self.timeout,
+                ),
+                "follow_redirects": True,
+            }
+
+            if self.proxies:
+                client_kwargs["proxies"] = self.proxies
+
+            async with httpx.AsyncClient(**client_kwargs) as client:
+                response = await client.get(url, headers=request_headers, params=params)
+                response.raise_for_status()
+
+                try:
+                    return True, response.json()
+                except Exception:
+                    return True, response.text
+
+        except httpx.TimeoutException as e:
+            if "Read" in str(e):
+                error_msg = f"读取超时: {url} (服务器响应时间过长)"
+            elif "Connect" in str(e):
+                error_msg = f"连接超时: {url} (无法建立连接)"
+            else:
+                error_msg = f"请求超时: {url}"
+            logger.error(f"{error_msg} - {str(e)}")
+            return False, error_msg
+
+        except httpx.HTTPStatusError as e:
+            error_msg = f"HTTP 错误 {e.response.status_code}: {url}"
+            logger.error(f"{error_msg} - {str(e)}")
+            return False, error_msg
+
+        except httpx.RequestError as e:
+            error_msg = f"网络请求失败: {url}"
+            logger.error(f"{error_msg} - {str(e)}")
+            return False, error_msg
+
+        except Exception as e:
+            error_msg = f"未知错误: {str(e)}"
+            logger.error(f"请求 {url} 时发生未知错误: {str(e)}")
+            return False, error_msg
+
     def _post(
             self,
             path: str,
@@ -176,6 +244,74 @@ class ExternalServiceClient:
                     return True, response.json()
                 except Exception:
                     # 如果不是 JSON，返回文本
+                    return True, response.text
+
+        except httpx.TimeoutException as e:
+            if "Read" in str(e):
+                error_msg = f"读取超时: {url} (服务器响应时间过长)"
+            elif "Connect" in str(e):
+                error_msg = f"连接超时: {url} (无法建立连接)"
+            else:
+                error_msg = f"请求超时: {url}"
+            logger.error(f"{error_msg} - {str(e)}")
+            return False, error_msg
+
+        except httpx.HTTPStatusError as e:
+            error_msg = f"HTTP 错误 {e.response.status_code}: {url}"
+            logger.error(f"{error_msg} - {str(e)}")
+            return False, error_msg
+
+        except httpx.RequestError as e:
+            error_msg = f"网络请求失败: {url}"
+            logger.error(f"{error_msg} - {str(e)}")
+            return False, error_msg
+
+        except Exception as e:
+            error_msg = f"未知错误: {str(e)}"
+            logger.error(f"请求 {url} 时发生未知错误: {str(e)}")
+            return False, error_msg
+
+    async def _post_async(
+            self,
+            path: str,
+            data: Optional[Dict[str, Any]] = None,
+            headers: Optional[Dict[str, str]] = None,
+    ) -> tuple[bool, Any]:
+        """
+        发送 POST 请求（异步）
+
+        Args:
+            path: API 路径
+            data: 请求体数据
+            headers: 额外的请求头
+
+        Returns:
+            (成功标志, 响应数据或错误消息)
+        """
+        url = f"{self.base_url}{path}"
+        request_headers = self._build_headers(headers)
+
+        try:
+            client_kwargs: Dict[str, Any] = {
+                "timeout": httpx.Timeout(
+                    connect=self.timeout,
+                    read=self.timeout * 1.5,
+                    write=self.timeout,
+                    pool=self.timeout,
+                ),
+                "follow_redirects": True,
+            }
+
+            if self.proxies:
+                client_kwargs["proxies"] = self.proxies
+
+            async with httpx.AsyncClient(**client_kwargs) as client:
+                response = await client.post(url, headers=request_headers, json=data)
+                response.raise_for_status()
+
+                try:
+                    return True, response.json()
+                except Exception:
                     return True, response.text
 
         except httpx.TimeoutException as e:

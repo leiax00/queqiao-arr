@@ -146,7 +146,7 @@ async def tmdb_search(
     client: TMDBClient = Depends(get_tmdb_client),
     current_user=Depends(get_current_user),
 ):
-    ok, data = client.search_tv(**params.model_dump())
+    ok, data = await client.search_tv_async(**params.model_dump())
     if not ok:
         return error_response(message=str(data), code=502)
     # 透传 TMDB 的分页/结果基本字段
@@ -228,7 +228,7 @@ async def tmdb_tv_details(
     client: TMDBClient = Depends(get_tmdb_client),
     current_user=Depends(get_current_user),
 ):
-    ok, data = client.get_tv_details(tv_id=tv_id, language=language)
+    ok, data = await client.get_tv_details_async(tv_id=tv_id, language=language)
     if not ok:
         return error_response(message=str(data), code=502)
     return success_response(data)
@@ -300,7 +300,7 @@ async def tmdb_alternative_titles(
     client: TMDBClient = Depends(get_tmdb_client),
     current_user=Depends(get_current_user),
 ):
-    ok, data = client.get_alternative_titles(tv_id=tv_id, country=country)
+    ok, data = await client.get_alternative_titles_async(tv_id=tv_id, country=country)
     if not ok:
         return error_response(message=str(data), code=502)
     # 透传并轻量规整字段名

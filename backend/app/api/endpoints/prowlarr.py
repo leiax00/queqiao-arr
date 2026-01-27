@@ -99,7 +99,7 @@ async def prowlarr_search(
     client: ProwlarrClient = Depends(get_prowlarr_client),
     current_user=Depends(get_current_user),
 ):
-    ok, data = client.search(**params.model_dump())
+    ok, data = await client.search_async(**params.model_dump())
     if not ok:
         return error_response(message=str(data), code=502)
     results = data if isinstance(data, list) else []
