@@ -19,6 +19,7 @@ class SearchQuery(BaseModel):
     imdbid: Optional[str] = Field(None, description="IMDB ID")
     limit: int = Field(100, description="返回结果限制")
     offset: int = Field(0, description="分页偏移")
+    indexer_ids: Optional[list[int]] = Field(None, description="限制索引器 ID 列表")
 
     class Config:
         populate_by_name = True

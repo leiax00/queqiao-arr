@@ -117,8 +117,9 @@ async def get_tmdb_client(
     return await _load_tmdb_runtime(db)
 
 
-@router.get("")
-async def torznab_api(
+async def _torznab_core(
+    *,
+    indexer_id: Optional[int] = None,
     t: str = Query(..., description="Torznab 操作类型 (caps, search, tvsearch, movie)"),
     q: Optional[str] = Query(None, description="搜索关键词"),
     season: Optional[int] = Query(None, description="季号"),
@@ -162,6 +163,7 @@ async def torznab_api(
             imdbid=imdbid,
             limit=limit,
             offset=offset,
+            indexer_ids=[indexer_id] if indexer_id else None,
         )
     except ValidationError as exc:
         return Response(
@@ -185,3 +187,71 @@ async def torznab_api(
     else:
         # 返回错误 XML（HTTP 200，XML body 包含错误信息）
         return Response(content=result, media_type="application/xml")
+
+
+@router.get("")
+async def torznab_api(
+    t: str = Query(..., description="Torznab 操作类型 (caps, search, tvsearch, movie)"),
+    q: Optional[str] = Query(None, description="搜索关键词"),
+    season: Optional[int] = Query(None, description="季号"),
+    ep: Optional[int] = Query(None, description="集号"),
+    tmdbid: Optional[int] = Query(None, description="TMDB ID"),
+    tvdbid: Optional[int] = Query(None, description="TVDB ID"),
+    rid: Optional[int] = Query(None, description="TVRage ID"),
+    imdbid: Optional[str] = Query(None, description="IMDB ID"),
+    offset: int = Query(0, description="偏移量"),
+    limit: int = Query(100, description="限制数量"),
+    db: AsyncSession = Depends(get_db),
+    prowlarr_client: Optional[ProwlarrClient] = Depends(get_prowlarr_client),
+    tmdb_client=Depends(get_tmdb_client),
+):
+    return await _torznab_core(
+        t=t,
+        q=q,
+        season=season,
+        ep=ep,
+        tmdbid=tmdbid,
+        tvdbid=tvdbid,
+        rid=rid,
+        imdbid=imdbid,
+        offset=offset,
+        limit=limit,
+        db=db,
+        prowlarr_client=prowlarr_client,
+        tmdb_client=tmdb_client,
+    )
+
+
+@router.get("/{indexer_id}")
+async def torznab_api_with_indexer(
+    indexer_id: int,
+    t: str = Query(..., description="Torznab 操作类型 (caps, search, tvsearch, movie)"),
+    q: Optional[str] = Query(None, description="搜索关键词"),
+    season: Optional[int] = Query(None, description="季号"),
+    ep: Optional[int] = Query(None, description="集号"),
+    tmdbid: Optional[int] = Query(None, description="TMDB ID"),
+    tvdbid: Optional[int] = Query(None, description="TVDB ID"),
+    rid: Optional[int] = Query(None, description="TVRage ID"),
+    imdbid: Optional[str] = Query(None, description="IMDB ID"),
+    offset: int = Query(0, description="偏移量"),
+    limit: int = Query(100, description="限制数量"),
+    db: AsyncSession = Depends(get_db),
+    prowlarr_client: Optional[ProwlarrClient] = Depends(get_prowlarr_client),
+    tmdb_client=Depends(get_tmdb_client),
+):
+    return await _torznab_core(
+        indexer_id=indexer_id,
+        t=t,
+        q=q,
+        season=season,
+        ep=ep,
+        tmdbid=tmdbid,
+        tvdbid=tvdbid,
+        rid=rid,
+        imdbid=imdbid,
+        offset=offset,
+        limit=limit,
+        db=db,
+        prowlarr_client=prowlarr_client,
+        tmdb_client=tmdb_client,
+    )

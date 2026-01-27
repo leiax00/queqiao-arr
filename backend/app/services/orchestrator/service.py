@@ -93,6 +93,7 @@ class OrchestrationService:
             ep=query.ep,
             limit=query.limit,
             offset=query.offset,
+            indexer_ids=query.indexer_ids,
         )
 
         if not ok:
@@ -285,6 +286,7 @@ class OrchestrationService:
         ep: Optional[int] = None,
         limit: int = 100,
         offset: int = 0,
+        indexer_ids: Optional[List[int]] = None,
     ) -> Tuple[bool, List[dict], int]:
         """
         调用 Prowlarr 搜索接口
@@ -316,6 +318,8 @@ class OrchestrationService:
                     "limit": fetch_size,
                     "offset": 0,
                 }
+                if indexer_ids:
+                    params["indexer_ids"] = indexer_ids
                 if season is not None:
                     params["season"] = season
                 if ep is not None:
